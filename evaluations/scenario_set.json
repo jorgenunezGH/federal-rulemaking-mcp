@@ -1,0 +1,172 @@
+{
+  "scenario_set": "Federal Rulemaking Read MCP Server",
+  "version": "1.0",
+  "author": "Jorge Nunez",
+  "date": "2026-08-19",
+  "scenarios": [
+    {
+      "id": "S01",
+      "name": "Successful topic search",
+      "category": "happy_path",
+      "tool": "search_rulemaking_documents",
+      "input": { "search_term": "federal buildings energy efficiency" },
+      "expected": "Returns a non-empty list; each result includes document_id, title, and source_url",
+      "measures": ["task_success", "provenance_completeness", "response_validity"]
+    },
+    {
+      "id": "S02",
+      "name": "Search with agency filter",
+      "category": "happy_path",
+      "tool": "search_rulemaking_documents",
+      "input": { "search_term": "energy", "agency_id": "EERE" },
+      "expected": "Returns results scoped to the specified agency, each with source_url",
+      "measures": ["task_success", "tool_selection_accuracy", "provenance_completeness"]
+    },
+    {
+      "id": "S03",
+      "name": "Search yields no results",
+      "category": "edge_case",
+      "tool": "search_rulemaking_documents",
+      "input": { "search_term": "zxqwv nonexistent term 99999" },
+      "expected": "Returns an empty list with a clear 'no matches found' message; no error thrown",
+      "measures": ["graceful_failure", "response_validity"]
+    },
+    {
+      "id": "S04",
+      "name": "Empty search term rejected",
+      "category": "validation",
+      "tool": "search_rulemaking_documents",
+      "input": { "search_term": "" },
+      "expected": "Validation error returned before any API call; clear message",
+      "measures": ["response_validity", "graceful_failure"]
+    },
+    {
+      "id": "S05",
+      "name": "Retrieve valid document",
+      "category": "happy_path",
+      "tool": "get_document_details",
+      "input": { "document_id": "FDA-2021-N-0270-0001" },
+      "expected": "Returns full metadata: title, document_type, agency_id, docket_id, source_url",
+      "measures": ["task_success", "response_validity", "provenance_completeness"]
+    },
+    {
+      "id": "S06",
+      "name": "Retrieve nonexistent document",
+      "category": "edge_case",
+      "tool": "get_document_details",
+      "input": { "document_id": "FAKE-9999-X-0000-0001" },
+      "expected": "Clear 'document not found' message; no crash; graceful 404 handling",
+      "measures": ["graceful_failure", "response_validity"]
+    },
+    {
+      "id": "S07",
+      "name": "Invalid document ID format rejected",
+      "category": "validation",
+      "tool": "get_document_details",
+      "input": { "document_id": "not a valid id !!!" },
+      "expected": "Validation error before API call; clear message",
+      "measures": ["response_validity", "graceful_failure"]
+    },
+    {
+      "id": "S08",
+      "name": "Retrieve valid docket",
+      "category": "happy_path",
+      "tool": "get_docket_details",
+      "input": { "docket_id": "FDA-2021-N-0270" },
+      "expected": "Returns docket title, agency_id, docket_type, source_url",
+      "measures": ["task_success", "response_validity", "provenance_completeness"]
+    },
+    {
+      "id": "S09",
+      "name": "Retrieve nonexistent docket",
+      "category": "edge_case",
+      "tool": "get_docket_details",
+      "input": { "docket_id": "FAKE-0000-X-0000" },
+      "expected": "Clear 'docket not found' message; graceful 404 handling",
+      "measures": ["graceful_failure", "response_validity"]
+    },
+    {
+      "id": "S10",
+      "name": "Comment requirements — open period",
+      "category": "happy_path",
+      "tool": "get_comment_requirements",
+      "input": { "document_id": "EERE-2022-BT-OT-0004-0001" },
+      "expected": "Returns status='open', accepting_comments=true, a days_remaining count, and a populated comment_url",
+      "measures": ["task_success", "response_validity", "provenance_completeness"],
+      "note": "Comment window closes 2026-09-09. Use FAA-2026-9967-0001 (closes 2026-10-17) if this scenario is re-run after that date."
+    },
+    {
+      "id": "S11",
+      "name": "Comment requirements — closed with late comments accepted",
+      "category": "edge_case",
+      "tool": "get_comment_requirements",
+      "input": { "document_id": "FDA-2021-N-0270-0001" },
+      "expected": "Returns status='closed_late_comments_accepted' with days_since_closed; correctly overrides the contradictory openForComment=true flag",
+      "measures": ["task_success", "response_validity", "graceful_failure"]
+    },
+    {
+      "id": "S11b",
+      "name": "Comment requirements — not applicable",
+      "category": "edge_case",
+      "tool": "get_comment_requirements",
+      "input": { "document_id": "EERE-2022-BT-TP-0028-0021" },
+      "expected": "Returns status='not_applicable' with comment_url suppressed to null",
+      "measures": ["response_validity", "graceful_failure"]
+    },
+        {
+      "id": "S12",
+      "name": "Rate limit handling",
+      "category": "resilience",
+      "tool": "all",
+      "input": { "_mock": "http_429" },
+      "expected": "All client functions raise RegulationsClientError with retry guidance; the error message does not echo the upstream response body",
+      "measures": ["graceful_failure", "response_validity"],
+      "note": "Verified by mocking the HTTP layer rather than exhausting the live 1000-per-hour quota. See tests/test_rate_limit.py."
+    },
+    {
+      "id": "S12b",
+      "name": "Upstream 404 distinguished from general error",
+      "category": "edge_case",
+      "tool": "get_document_details",
+      "input": { "_mock": "http_404" },
+      "expected": "Raises DocumentNotFoundError, a subclass of RegulationsClientError, so a missing record can be handled specifically or generally",
+      "measures": ["graceful_failure", "response_validity"]
+    },
+    {
+      "id": "S12c",
+      "name": "Server error body truncated",
+      "category": "resilience",
+      "tool": "all",
+      "input": { "_mock": "http_500_long_body" },
+      "expected": "Error message includes the status code but truncates the response body to 200 characters",
+      "measures": ["graceful_failure"]
+    },
+    {
+      "id": "S12d",
+      "name": "Request timeout configured",
+      "category": "resilience",
+      "tool": "all",
+      "input": { "_mock": "inspect_call_kwargs" },
+      "expected": "Every outbound request sets timeout=10",
+      "measures": ["graceful_failure"]
+    },
+    {
+      "id": "S12e",
+      "name": "Unauthorized raises client error",
+      "category": "resilience",
+      "tool": "all",
+      "input": { "_mock": "http_403" },
+      "expected": "Raises RegulationsClientError rather than returning an empty result set",
+      "measures": ["graceful_failure", "response_validity"]
+    },
+    {
+      "id": "S13",
+      "name": "End-to-end analyst workflow",
+      "category": "integration",
+      "tool": "multi_tool",
+      "input": { "flow": "search -> get_document_details -> get_docket_details -> get_comment_requirements" },
+      "expected": "Agent chains tools correctly, produces a cited summary with source URLs at each step",
+      "measures": ["task_success", "tool_selection_accuracy", "provenance_completeness"]
+    }
+  ]
+}
