@@ -209,3 +209,31 @@ where the transport layer cannot start.
 | Contradictory comment flags | Explicit "could not be determined" status |
 
 No condition produces a stack trace to the caller.
+
+## Attack Surface
+
+| # | Surface | Risk | Mitigation |
+| --- | --- | --- | --- |
+| 1 | MCP protocol endpoint | Malformed or hostile tool input causing errors or unintended requests | Pydantic validation on every input; ID format patterns; `page_size` bounded 5–250; validation precedes any network call |
+| 2 | Outbound HTTP requests | Server abused to reach unintended endpoints | Base URL hardcoded in `regulations_client.py`; no user-supplied URLs; path segments come only from validated ID patterns |
+| 3 | API key handling | Credential leaked through logs or error messages | Key read from environment, never logged; rate limit errors use a fixed string; other upstream bodies truncated to 200 characters; verified by `test_rate_limit_error_does_not_leak_response_body` |
+| 4 | Upstream response content | Malicious or malformed API response propagating to the agent | Responses parsed into Pydantic output models; absent fields normalized; unresolvable comment flags return explicit uncertainty rather than an inferred value |
+| 5 | Resource exhaustion | Unresponsive upstream hanging the agent | 10-second timeout on every request, verified by `test_client_timeout_is_configured` |
+
+### Not applicable
+
+| Surface | Why |
+| --- | --- |
+| Write operations | Only HTTP GET is issued; no POST, PUT, PATCH, or DELETE |
+| Data confidentiality | All retrieved data is published federal rulemaking information |
+| Persistence | No caching or storage beyond the request |
+| User data | No user identifiers collected, logged, or transmitted |
+
+### Out of scope
+
+This security model assumes:
+
+- The server is used to access Regulations.gov data only, as designed
+- Users trust Regulations.gov as the authoritative source
+- Network egress to `api.regulations.gov` is permitted in the deployment environment
+- The MCP client enforces whatever authorization the calling organization requires — this server does not determine who holds authority

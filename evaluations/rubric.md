@@ -55,3 +55,19 @@ The `find_open_comment_docs.py` utility locates current open-period
 documents to refresh this scenario. The OPEN branch is additionally
 covered by `test_open_period_reports_days_remaining`, which uses
 synthetic dates and is therefore time-independent.
+
+### Note on tool_selection_accuracy
+
+This metric requires an LLM agent choosing among the four tools based on
+their names and descriptions alone. Measuring it requires a running MCP
+server, which is blocked by the workstation constraint documented in
+`environment_constraints.md`.
+
+Scenarios in this set were executed by invoking tool logic directly.
+Tool-selection accuracy is therefore **not measured**, and cells for that
+metric are left blank rather than scored.
+
+Mitigation applied at design time: tool names state the analyst question
+they answer, and descriptions specify when to use each tool relative to the
+others. Whether that is sufficient for unambiguous LLM selection remains
+unverified.

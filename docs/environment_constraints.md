@@ -276,6 +276,28 @@ Avoid the generated `.exe` shims in `.venv\Scripts\`.
 
 ---
 
+### Transport alternatives investigated
+
+To determine whether an alternative transport avoids the blocked
+dependency, SDK source files were inspected as text rather than imported,
+using `inspect_sdk_transports.py`.
+
+**Finding:** of the SDK's server-side modules, only `mcp/server/stdio.py`
+references the Windows-specific chain (`mcp.os.win32`). The HTTP transports
+— `sse.py`, `streamable_http.py`, and `streamable_http_manager.py` — contain
+no such reference.
+
+**Why that does not resolve the blocker:** `mcp/server/mcpserver/server.py`
+imports `stdio` at module level. Because `mcp/server/__init__.py` imports
+`MCPServer` from `.mcpserver`, any import of `mcp.server` triggers the stdio
+import chain before a transport is selected. Transport choice is a runtime
+decision; the failing import happens earlier.
+
+**Implication for federal deployment:** a team blocked on pywin32 cannot
+work around it by preferring HTTP transport. The dependency is structural to
+the package import, not conditional on configuration. A Linux environment or
+an IT policy exception is required.
+
 ## Outstanding IT Requests
 
 | Request | Status |

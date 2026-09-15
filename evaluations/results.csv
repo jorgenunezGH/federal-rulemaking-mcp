@@ -1,5 +1,5 @@
 scenario_id,scenario_name,category,task_success,tool_selection_accuracy,response_validity,provenance_completeness,graceful_failure,latency_sec,scenario_pass,notes
-S01,Successful topic search,happy_path,1,1,1,1,1,2.34,1,"Search 'federal buildings energy efficiency' returned 10 of 68919 matches; every result carried source_url"
+S01,Successful topic search,happy_path,1,,1,1,1,2.34,1,"...; tool_selection_accuracy not measured - tools were invoked directly rather than selected by an LLM agent"
 S02,Search with agency filter,happy_path,1,1,1,1,1,1.23,1,"Filter agency_id=EERE returned scoped results"
 S03,Search yields no results,edge_case,1,1,1,,1,1.20,1,"Nonsense term returned 0 results with clear message; no exception raised"
 S04,Empty search term rejected,validation,1,1,1,,1,0.00,1,"Pydantic min_length=1 rejects empty search_term before network call; zero rate limit consumed"
@@ -16,4 +16,4 @@ S12b,Upstream 404 distinguished from general error,edge_case,1,1,1,,1,0.00,1,"Mo
 S12c,Server error body truncated,resilience,1,1,1,,1,0.00,1,"Mocked 500 with a 500-character body; error message truncates to 200 characters to limit leaked request context"
 S12d,Request timeout configured,resilience,1,1,1,,1,0.00,1,"Verified every outbound request sets timeout=10; prevents an unresponsive upstream from hanging the agent"
 S12e,Unauthorized raises client error,resilience,1,1,1,,1,0.00,1,"Mocked 403 raises RegulationsClientError rather than returning empty results, so an auth failure is not mistaken for zero matches"
-S13,End-to-end analyst workflow,integration,,,,,,,,"Not executed - requires MCP runtime; blocked by local pywin32 constraint"
+S13,End-to-end analyst workflow via MCP,integration,,,,,,,,"Not executed under normal configuration. Source inspection found only stdio.py requires pywin32; sse.py and streamable_http.py are clean. A sys.modules stub confirmed the blocker is import-time only and that MCPServer instantiates and registers tools successfully. HTTP transport appears viable but has not been exercised end to end. Recorded as a diagnostic finding, not a supported configuration."
