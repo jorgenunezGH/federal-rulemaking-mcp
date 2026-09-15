@@ -1,5 +1,7 @@
 # Federal Rulemaking Read MCP Server
 
+**Repository:** https://github.com/jorgenunezGH/federal-rulemaking-mcp
+
 A Model Context Protocol (MCP) server that gives AI agents governed,
 read-only access to federal rulemaking data from the Regulations.gov API.
 
