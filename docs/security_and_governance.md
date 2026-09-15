@@ -187,47 +187,49 @@ sequenceDiagram
     participant A as Analyst
     participant Agent as AI Agent
     participant MCP as MCP Server
-    participant V as Validation Layer
     participant L as Status Logic
     participant API as Regulations.gov API
 
-    A->>Agent: "Find proposed rules on federal building energy standards"
-    Agent->>MCP: search_rulemaking_documents(search_term)
-    MCP->>V: Validate input (Pydantic)
-    alt Invalid input
-        V-->>MCP: ValidationError
-        MCP-->>Agent: Structured error (no API call made)
-    else Valid input
-        V-->>MCP: OK
-        MCP->>API: GET /documents (X-Api-Key)
-        alt Rate limited or error
-            API-->>MCP: 429 / 4xx / 5xx
-            MCP-->>Agent: Graceful error + retry guidance
-        else Success
-            API-->>MCP: 200 + document list
-            MCP-->>Agent: Results + source_url for each
-        end
+    A->>Agent: Find proposed rules on federal building energy standards
+    Agent->>MCP: search_rulemaking_documents
+
+    alt Input fails validation
+        MCP-->>Agent: Structured error, no API call made
+    else Input valid
+        MCP->>API: GET documents
+        API-->>MCP: 200 with document list
+        MCP-->>Agent: Results with source_url for each
     end
 
-    Agent->>MCP: get_document_details(document_id)
-    MCP->>API: GET /documents/{id}
-    API-->>MCP: 200 + metadata
-    MCP-->>Agent: Document detail + docket_id + source_url
+    Agent->>MCP: get_document_details
+    MCP->>API: GET documents by id
+    API-->>MCP: 200 with metadata
+    MCP-->>Agent: Detail plus docket_id and source_url
 
-    Agent->>MCP: get_docket_details(docket_id)
-    MCP->>API: GET /dockets/{id}
-    API-->>MCP: 200 + docket attributes
-    MCP-->>Agent: Docket context + derived is_rulemaking
+    Agent->>MCP: get_docket_details
+    MCP->>API: GET dockets by id
+    API-->>MCP: 200 with docket attributes
+    MCP-->>Agent: Context plus derived is_rulemaking
 
-    Agent->>MCP: get_comment_requirements(document_id)
-    MCP->>API: GET /documents/{id}
-    API-->>MCP: 200 + contradictory comment flags
-    MCP->>L: resolve_comment_status(attrs, now)
-    L-->>MCP: status, summary, days_remaining, days_since_closed
-    MCP-->>Agent: Resolved status + quotable summary + conditional comment_url
+    Agent->>MCP: get_comment_requirements
+    MCP->>API: GET documents by id
+    API-->>MCP: 200 with contradictory comment flags
+    MCP->>L: resolve_comment_status
+    L-->>MCP: status, summary, days remaining, days since closed
+    MCP-->>Agent: Resolved status plus conditional comment_url
 
     Agent-->>A: Cited summary for management briefing
 
     Note over MCP,API: Read-only. No POST, PUT, PATCH, or DELETE.
     Note over MCP,L: Status logic runs without network or MCP dependency.
 ```
+
+### Error paths not shown in the diagram
+
+| Condition | Behavior |
+| --- | --- |
+| Input fails Pydantic validation | Structured error returned before any network call |
+| Upstream 404 | `DocumentNotFoundError`; clear "not found" message |
+| Upstream 429 | Graceful error with retry guidance |
+| Upstream 500 | Status reported, body truncated to 200 characters |
+| Upstream timeout | 10-second limit on every request |
