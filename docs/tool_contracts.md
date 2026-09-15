@@ -264,7 +264,8 @@ this tool reuses the same request as Tool 2 rather than issuing a second.
 | Provenance on every result | `source_url` on all four tools |
 | Bounded and read-only | Four tools; only GET requests issued |
 | Validation before network calls | Malformed input consumes zero rate limit |
-| Predictable failures | Every tool documents its failure modes ||  Derived fields over raw vocabulary | `is_rulemaking` from `docketType`; `status` enum from five flags |
+| Predictable failures | Every tool documents its failure modes |
+| Derived fields over raw vocabulary | `is_rulemaking` from `docketType`; `status` enum from five flags |
 | Uncertainty stated, not guessed | Tool 4 returns "could not be determined" rather than inferring |
 | Consistent types | `keywords` normalized to a list; absent optionals return null, never omitted |
 
