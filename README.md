@@ -350,6 +350,7 @@ at any point during this project.**
 
 | Document | Contents |
 | --- | --- |
+| [`docs/evaluation_document.md`](docs/evaluation_document.md) | Consolidated evaluation: methodology, metrics, security, lessons learned |
 | [`docs/use_case.md`](docs/use_case.md) | Persona, workflow, organizational value |
 | [`docs/tool_contracts.md`](docs/tool_contracts.md) | Inputs, outputs, failure modes, design notes |
 | [`docs/api_feasibility.md`](docs/api_feasibility.md) | Endpoint tests and GO decision |
