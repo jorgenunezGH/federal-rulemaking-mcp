@@ -180,46 +180,32 @@ See `environment_constraints.md` for full diagnostics.
 
 ---
 
-## Read Flow — Sequence Diagram
+## Read Flow
 
-```mermaid
-sequenceDiagram
-    participant A as Analyst
-    participant Agent as AI Agent
-    participant MCP as MCP Server
-    participant L as Status Logic
-    participant API as Regulations gov API
-    A->>Agent: Find proposed rules on federal buildings
-    Agent->>MCP: search_rulemaking_documents
-    MCP->>API: GET documents
-    API-->>MCP: 200 with document list
-    MCP-->>Agent: Results with source_url
-    Agent->>MCP: get_document_details
-    MCP->>API: GET document by id
-    API-->>MCP: 200 with metadata
-    MCP-->>Agent: Detail with docket_id
-    Agent->>MCP: get_docket_details
-    MCP->>API: GET docket by id
-    API-->>MCP: 200 with attributes
-    MCP-->>Agent: Context with is_rulemaking
-    Agent->>MCP: get_comment_requirements
-    MCP->>API: GET document by id
-    API-->>MCP: 200 with comment flags
-    MCP->>L: resolve_comment_status
-    L-->>MCP: status and summary
-    MCP-->>Agent: Resolved status
-    Agent-->>A: Cited briefing
-```
+| Step | Actor | Action | Returns |
+| --- | --- | --- | --- |
+| 1 | Analyst | Asks about proposed rules on a topic | — |
+| 2 | Agent | Calls `search_rulemaking_documents` | Document list, each with `source_url` |
+| 3 | Agent | Calls `get_document_details` | Full metadata plus parent `docket_id` |
+| 4 | Agent | Calls `get_docket_details` | Docket context plus derived `is_rulemaking` |
+| 5 | Agent | Calls `get_comment_requirements` | Resolved status, summary, conditional `comment_url` |
+| 6 | Analyst | Receives cited summary | Briefing-ready output with provenance |
 
-### Error paths not shown above
+Only HTTP GET requests are issued at any step. No POST, PUT, PATCH, or
+DELETE. Comment status resolution runs in `src/comment_status.py` with no
+network or MCP dependency, which is why it can be tested on a workstation
+where the transport layer cannot start.
+
+### Error paths
 
 | Condition | Behavior |
 | --- | --- |
 | Input fails Pydantic validation | Structured error before any network call |
 | Upstream 404 | `DocumentNotFoundError`; clear "not found" message |
+| Upstream 403 | Client error raised, not empty results |
 | Upstream 429 | Graceful error with retry guidance |
-| Upstream 500 | Status reported, body truncated to 200 characters |
+| Upstream 500 | Status reported, response body truncated to 200 characters |
 | Upstream timeout | 10-second limit on every request |
+| Contradictory comment flags | Explicit "could not be determined" status |
 
-Only HTTP GET requests are issued at any step. Comment status resolution
-runs in `src/comment_status.py` with no network or MCP dependency.
+No condition produces a stack trace to the caller.
