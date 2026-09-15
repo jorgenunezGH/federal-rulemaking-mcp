@@ -298,28 +298,26 @@ later draws the wrong conclusion.
 Stated plainly, since a lessons-learned document that only reports
 successes is not useful.
 
-### One scenario remains unexecuted
+### All scenarios executed
 
-| Scenario | Reason | Assessment |
-| --- | --- | --- |
-| S13 end-to-end MCP flow | Requires MCP runtime | Genuinely blocked |
+S13, the end-to-end MCP flow, was the last unexecuted scenario. It was
+closed by determining that the workstation's compiled-extension restriction
+is import-time only, then stubbing the blocked modules to start the server
+and connect a client.
 
-S12, rate limit handling, was unexecuted for most of the project because I
-prioritized building the fourth tool instead. I later closed it by mocking
-the HTTP layer, which took under an hour — confirming it had been a choice
-about sequencing rather than a constraint.
+**What that produced:** verified protocol integration — four tools
+discovered with full descriptions, live invocation returning real data, and
+a malformed identifier handled gracefully across the wire.
 
-Writing those tests surfaced four behaviors that were already implemented
-but never verified: that a 404 raises a subclass catchable as either a
-specific or general error, that upstream response bodies truncate to 200
-characters, that every request sets an explicit timeout, and that a 403
-raises rather than returning empty results. None required new code. Testing
-them converted implicit correctness into verified correctness.
+**What it did not produce:** a supported deployment configuration. Stubbing
+`win32job` disables process lifecycle management whose absence was not
+evaluated. The finding is that the server works, not that the workstation is
+suitable.
 
-The most useful of those tests mocks a 429 whose response body contains a
-credential-like string and asserts it does not appear in the raised error.
-My governance document claimed the API key is never leaked in error
-messages. That test proves it.
+**The lesson:** when a dependency blocks you, determine whether it fails at
+import or at call time. Import-time failures can sometimes be isolated;
+call-time failures cannot. I spent days treating this as an environmental
+dead end before testing that distinction, and the test took fifteen minutes.
 
 ### The MCP Inspector was never used
 

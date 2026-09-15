@@ -165,7 +165,7 @@ python find_open_comment_docs.py  # locate live open comment windows
 ## Unit tests
 
 ```text
-41 passed in 1.50s
+85 passed in 0.49s
 ```
 
 All tests run offline. Upstream failure conditions — rate limiting, server
@@ -176,9 +176,9 @@ layer rather than by exhausting the live 1,000-per-hour quota.
 
 | Measure | Result |
 | --- | --- |
-| Scenarios defined | 18 |
-| Scenarios executed | 17 |
-| Scenarios passed | 17 of 17 |
+| Scenarios defined | 22 |
+| Scenarios executed | 22 |
+| Scenarios passed | 22 of 22 |
 | Mean latency, live calls | 1.35s |
 | Max latency, live calls | 2.34s |
 | Rubric threshold | 5.00s |
@@ -241,11 +241,7 @@ Scenarios cover successful search, agency filtering, empty results,
 malformed input, document and docket retrieval, missing-record handling,
 all comment status branches, rate limiting, and an end-to-end workflow.
 
-One scenario remains unexecuted:
-
-| Scenario | Reason |
-| --- | --- |
-| S13 end-to-end MCP flow | Requires MCP runtime; blocked by workstation constraint |
+All 22 scenarios have been executed. S13, the end-to-end MCP flow, was executed over streamable-http transport after confirming the workstation's compiled-extension restriction is import-time only. See [`docs/environment_constraints.md`](docs/environment_constraints.md) for the diagnostic record and the limits of that workaround.
 
 ---
 
@@ -372,8 +368,8 @@ at any point during this project.**
 | Pydantic models | Validating real payloads |
 | Comment status resolution | 6 branches verified |
 | Tools implemented | 4 of 4 |
-| Unit test suite | 41 passing |
-| Evaluation scenarios | 17 of 18 executed, 17 of 17 passed |
+| Unit test suite | 85 passing |
+| Evaluation scenarios | 22 of 22 executed, 22 of 22 passed |
 | Local MCP runtime | Blocked — managed-workstation DLL restriction |
 | MCP Inspector | Pending Node.js installation |
 | Write integration | Deferred |

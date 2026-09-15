@@ -34,7 +34,8 @@ only if all its applicable metrics pass.
   confirms input guarding
 - Provenance is scored on every happy-path scenario — a missing
   source_url is an automatic scenario fail
-- The integration scenario (S13) is weighted highest for demo value
+- The integration scenario (S13) is weighted highest for demo value and has
+  been executed over streamable-http transport
 
 ## Note on Time-Dependent Scenarios
 

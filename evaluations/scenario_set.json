@@ -167,6 +167,45 @@
       "input": { "flow": "search -> get_document_details -> get_docket_details -> get_comment_requirements" },
       "expected": "Agent chains tools correctly, produces a cited summary with source URLs at each step",
       "measures": ["task_success", "tool_selection_accuracy", "provenance_completeness"]
+    },
+    {
+      "id": "S14",
+      "name": "Adversarial ID input rejected",
+      "category": "security",
+      "tool": "get_document_details, get_docket_details, get_comment_requirements",
+      "input": { "_payloads": "path traversal, SQL syntax, script tags, parameter injection, null byte, header injection, JNDI lookup, oversized string" },
+      "expected": "All 13 payloads rejected by the Pydantic ID pattern before any network call, for all three ID-taking tools",
+      "measures": ["response_validity", "graceful_failure"],
+      "note": "Tool inputs originate from an LLM agent that may be acting on untrusted user text. See tests/test_adversarial_input.py."
+    },
+    {
+      "id": "S15",
+      "name": "Bounded parameters cannot be driven out of range",
+      "category": "security",
+      "tool": "search_rulemaking_documents",
+      "input": { "_payloads": "page_size of 999999, -1, and 0" },
+      "expected": "All rejected by Pydantic bounds before any network call",
+      "measures": ["response_validity", "graceful_failure"]
+    },
+    {
+      "id": "S16",
+      "name": "Search term accepts free text without pattern restriction",
+      "category": "security",
+      "tool": "search_rulemaking_documents",
+      "input": { "search_term": "'; DROP TABLE documents; --" },
+      "expected": "Accepted and treated as a parameter value, not an instruction; cannot alter request structure because base URL and parameter names are fixed in the client",
+      "measures": ["response_validity"],
+      "note": "Deliberate design decision. Restricting search_term would break legitimate searches containing punctuation, and it is never used as a URL path segment."
+    },
+    {
+      "id": "S17",
+      "name": "Latency consistency across repeated trials",
+      "category": "resilience",
+      "tool": "all",
+      "input": { "_trials": "repeated live calls" },
+      "expected": "Mean latency within the 5-second threshold; outcome identical across trials",
+      "measures": ["latency", "task_success"],
+      "note": "Single-run latency does not demonstrate stability. See measure_latency.py."
     }
   ]
 }

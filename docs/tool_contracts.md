@@ -280,7 +280,8 @@ this tool reuses the same request as Tool 2 rather than issuing a second.
 | `get_comment_requirements` | `tests/test_comment_requirements.py` | 15 |
 | Upstream failure handling | `tests/test_rate_limit.py` | 8 |
 | Validation ordering and timeouts | `tests/test_tool_error_handling.py` | 3 |
-| **Total** | | **41** |
+| Adversarial and injection input | `tests/test_adversarial_input.py` | 44 |
+| **Total** | | **85** |
 
 All tests run offline with no network dependency and no MCP SDK import.
 Upstream failure conditions are verified by mocking the HTTP layer rather

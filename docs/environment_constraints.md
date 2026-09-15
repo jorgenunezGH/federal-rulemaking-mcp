@@ -132,7 +132,7 @@ this window each time. This has not been confirmed with IT.
 
 ---
 
-## Constraint 4 — `pywin32` Compiled Extension Load Denied (Current Blocker)
+## Constraint 4 — `pywin32` Compiled Extension Load Denied
 
 **Symptom:** MCP server startup fails when the SDK imports its Windows
 stdio support layer.
@@ -338,7 +338,7 @@ environment track for participants on managed workstations.
 
 ## Verification Commands
 
-To reproduce the current blocker:
+To reproduce the original restriction:
 
 ```powershell
 # Confirm cryptography compiled binding loads
@@ -363,9 +363,32 @@ python src/server.py
 | PowerShell execution policy | Resolved via process-scoped workaround |
 | Package `.exe` shims blocked | Resolved via `python -m` invocation |
 | `cryptography` compiled extension | No longer reproducing; cause unconfirmed |
-| `pywin32` compiled extension | Open — current blocker |
+| `pywin32` compiled extension | Open — worked around for diagnostics only |
 | Node.js not installed | Open — requested |
 | Git not installed | Open — approved, pending install |
 
 Remaining blockers are environmental. They do not reflect defects in the
 API integration, tool design, validation logic, or evaluation approach.
+
+---
+
+## Resolution: Import-Time Only
+
+The restriction was determined to be **import-time only**. Inserting
+placeholder modules into `sys.modules` for the blocked compiled extensions
+allowed the SDK to import, the server to instantiate, and all four tools to
+register.
+
+The server then started on streamable-http transport, and an MCP client
+completed a full protocol round trip: tool discovery returning four tools
+with their full descriptions, live invocation returning real data, and
+graceful handling of a malformed identifier.
+
+**Stubs required:**
+
+```python
+_stub("_win32sysloader")
+_stub("win32job", {...})
+_stub("win32api", {...})
+_stub("win32con", {})
+_stub("pywintypes", {"error": Exception})
