@@ -35,3 +35,6 @@ verify_*.py
 __pycache__/
 *.pyc
 *.pyo
+
+# Build provenance record — not needed inside the container
+build_record.txt

@@ -26,3 +26,8 @@ desktop.ini
 # Diagnostic artifacts
 sample_document_response.json
 discover_fields.py
+
+# Inspection artifacts and build provenance records (may contain sensitive deployment metadata)
+evaluations/baseline_check.txt
+evaluations/traceability_report.txt
+build_record.txt
