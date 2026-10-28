@@ -76,7 +76,10 @@ from five fields with a documented precedence rule.
 
 - **Goal-oriented tools** — mapped to analyst tasks, not REST endpoints
 - **Provenance always** — every result includes a `source_url`
-- **Read-only** — only HTTP GET requests are issued
+- **Read-only** — the server performs only read operations against
+  Regulations.gov (upstream HTTP GET only); MCP protocol messages use
+  streamable HTTP (which includes POST to the MCP endpoint, but no tool
+  submits comments or modifies any government record)
 - **Fail closed** — validation before network calls; no partial results
 - **Uncertainty stated** — contradictory data returns "could not be
   determined" rather than an inferred answer
@@ -229,6 +232,41 @@ remediation, Node.js installation, or access to a hosted environment.
 
 ---
 
+## IBM Code Engine Deployment
+
+The server is deployed as a Python 3.11 container using MCP
+streamable-HTTP transport.
+
+```text
+IBM Bob / watsonx agent
+        ↓
+Remote MCP endpoint
+        ↓
+IBM Code Engine
+        ↓
+Federal Rulemaking MCP server
+        ↓
+Regulations.gov API v4
+```
+
+The deployment uses a runtime secret for `REGULATIONS_API_KEY`. No
+credentials are baked into the image or committed to Git.
+
+STDIO remains appropriate for local client-managed subprocess execution.
+Streamable HTTP is used for the remotely addressable Code Engine service.
+
+**Endpoint (do not publish unless event guidance permits):**
+
+```text
+https://<code-engine-app>/mcp
+```
+
+Deployment artifacts are in [`deploy/`](deploy/). See
+[`deploy/README.md`](deploy/README.md) for build and environment-variable
+instructions.
+
+---
+
 ## Evaluation
 
 | File | Purpose |
@@ -241,7 +279,30 @@ Scenarios cover successful search, agency filtering, empty results,
 malformed input, document and docket retrieval, missing-record handling,
 all comment status branches, rate limiting, and an end-to-end workflow.
 
-All 22 scenarios have been executed. S13, the end-to-end MCP flow, was executed over streamable-http transport after confirming the workstation's compiled-extension restriction is import-time only. See [`docs/environment_constraints.md`](docs/environment_constraints.md) for the diagnostic record and the limits of that workaround.
+All 22 scenarios have been executed. S13, the end-to-end MCP flow, was
+executed over streamable-http transport after confirming the workstation's
+compiled-extension restriction is import-time only. See
+[`docs/environment_constraints.md`](docs/environment_constraints.md) for
+the diagnostic record and the limits of that workaround.
+
+Agent runs A01–A05 tested the complete tool-selection path using a running
+MCP server. Specifically evidenced per run:
+
+- **A01–A04**: correct single-tool selection for single-tool prompts; source
+  URL present; live API call successful.
+- **A05**: four-tool chain selected in correct order; source URL cited at
+  every step; screening brief produced with Nonrulemaking classification and
+  closed comment-period determination. The trace, scoring records, and final
+  response are internally consistent. The source-to-image-to-revision chain
+  for this run is incomplete (working tree was dirty; image digest and CE
+  revision not captured). A05-R2 against a sealed deployment is pending.
+
+The 39 parameterized ID-validation cases in
+[`tests/test_adversarial_input.py`](tests/test_adversarial_input.py)
+demonstrate Pydantic model-level rejection of adversarial inputs. These
+are model-layer validation tests; they confirm that invalid inputs are
+rejected before any network call is made, but they do not invoke the full
+MCP tool dispatch path end-to-end.
 
 ---
 
@@ -251,7 +312,9 @@ This server is read-only and does not determine organizational authority.
 Authorization decisions remain with the calling system and the human
 operator.
 
-- Only HTTP GET requests are issued
+- Only HTTP GET requests are issued to Regulations.gov; MCP protocol
+  messages use streamable HTTP (POST to the MCP endpoint is not a
+  government-service write — no tool submits comments or modifies records)
 - No persistence or caching beyond the request
 - No personally identifiable information retrieved
 - API key read from an environment variable; never logged
@@ -290,6 +353,9 @@ federal-rulemaking-mcp/
 ├── pytest.ini
 ├── .env.example
 ├── .gitignore
+├── Dockerfile                     container build (root — required by docker build context)
+├── .dockerignore
+├── build_and_push.sh              immutable-tag build and push script
 ├── demo.py                        presentation walkthrough
 ├── demo_output.txt                captured transcript
 ├── api_probe.py                   initial feasibility probe
@@ -300,6 +366,10 @@ federal-rulemaking-mcp/
 ├── verify_comment_tool.py
 ├── verify_empty_search.py
 ├── find_open_comment_docs.py
+├── deploy/
+│   ├── README.md                  deployment instructions and env-var reference
+│   ├── Dockerfile                 copy of root Dockerfile for reference
+│   └── .dockerignore              copy of root .dockerignore for reference
 ├── src/
 │   ├── __init__.py
 │   ├── models.py
@@ -320,7 +390,8 @@ federal-rulemaking-mcp/
 │   ├── tool_contracts.md
 │   ├── api_feasibility.md
 │   ├── security_and_governance.md
-│   └── environment_constraints.md
+│   ├── environment_constraints.md
+│   └── deployment_verification.md
 └── evaluations/
     ├── scenario_set.json
     ├── rubric.md

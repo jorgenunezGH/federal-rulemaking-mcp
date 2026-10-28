@@ -1,0 +1,49 @@
+# Tool Trace — Run A01
+# Sanitized: no API keys, credentials, tokens, or secret-bearing headers included.
+
+## Reproducibility Metadata
+date_utc:        2026-10-28T19:16:18Z
+git_commit:      19f979bcd1496b7d62bebcb1dce6484e6768feb8
+branch:          integration/ibm-watsonx
+agent_name:      Bob (federal-rulemaking MCP agent)
+mcp_server:      federal-rulemaking-mcp (local stdio transport)
+container_image: (not captured — leave blank until Code Engine deployment is confirmed)
+code_engine_rev: (not captured)
+
+## Tool Selection
+prompt:          "Retrieve authoritative details for Regulations.gov document FDA-2021-N-0270-0001 and cite the source."
+selected_tool:   get_document_details
+expected_tool:   get_document_details
+tool_correct:    true
+
+## Tool Invocation
+tool:            mcp__federal-rulemaking_d234__get_document_details
+arguments:
+  document_id:   "FDA-2021-N-0270-0001"
+
+## Raw Tool Response (sanitized)
+{
+  "document_id": "FDA-2021-N-0270-0001",
+  "title": "Endocrinologic and Metabolic Drugs Advisory Committee; Notice of Meeting; Establishment of a Public Docket; Request for Comments",
+  "document_type": "Notice",
+  "subtype": "Advisory Committee",
+  "agency_id": "FDA",
+  "docket_id": "FDA-2021-N-0270",
+  "posted_date": "2021-04-01T04:00:00Z",
+  "fr_document_number": "2021-06708",
+  "fr_citation": "86 FR 17165",
+  "page_count": 3,
+  "withdrawn": false,
+  "open_for_comment": true,
+  "within_comment_period": false,
+  "comment_end_date": "2021-05-27T03:59:59Z",
+  "source_url": "https://www.regulations.gov/document/FDA-2021-N-0270-0001",
+  "message": null
+}
+
+## Pass/Fail
+tool_correct:       1
+response_correct:   1
+source_url_cited:   1
+latency_ms:         (not measured — no trace available)
+pass:               1

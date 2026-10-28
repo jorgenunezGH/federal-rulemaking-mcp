@@ -1,0 +1,1 @@
+Produce a Preliminary Regulatory Screening Brief for the Public Buildings Service. Search for proposed rules about federal buildings energy efficiency standards, identify the most relevant recent filing, retrieve its full authoritative details and docket context, determine whether the comment period is still open, and summarize findings with source citations at each step.

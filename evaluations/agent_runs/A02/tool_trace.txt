@@ -1,0 +1,58 @@
+# Tool Trace — Run A02
+# Sanitized: no API keys, credentials, tokens, or secret-bearing headers included.
+# Selection difficulty: HIGH — get_document_details and get_comment_requirements both
+# appear superficially relevant; correct routing requires the agent to recognize the
+# prompt is asking about comment status, not general metadata.
+
+## Reproducibility Metadata
+date_utc:        2026-10-28T19:16:18Z
+git_commit:      19f979bcd1496b7d62bebcb1dce6484e6768feb8
+branch:          integration/ibm-watsonx
+agent_name:      Bob (federal-rulemaking MCP agent)
+mcp_server:      federal-rulemaking-mcp (local stdio transport)
+container_image: (not captured — leave blank until Code Engine deployment is confirmed)
+code_engine_rev: (not captured)
+
+## Tool Selection
+prompt:          "Is document FDA-2021-N-0270-0001 still accepting public comments? Explain whether the formal comment period is currently open and cite the authoritative source."
+selected_tool:   get_comment_requirements
+expected_tool:   get_comment_requirements
+distractor_tool: get_document_details  (incorrect — returns metadata, not resolved comment status)
+tool_correct:    true
+
+## Tool Invocation
+tool:            mcp__federal-rulemaking_d234__get_comment_requirements
+arguments:
+  document_id:   "FDA-2021-N-0270-0001"
+
+## Raw Tool Response (sanitized)
+{
+  "document_id": "FDA-2021-N-0270-0001",
+  "title": "Endocrinologic and Metabolic Drugs Advisory Committee; Notice of Meeting; Establishment of a Public Docket; Request for Comments",
+  "status": "closed_late_comments_accepted",
+  "summary": "The formal comment period closed on 2021-05-27 (1980 days ago). This document still accepts late comments, but submissions fall outside the official window.",
+  "accepting_comments": true,
+  "comment_start_date": "2021-04-01T04:00:00Z",
+  "comment_end_date": "2021-05-27T03:59:59Z",
+  "days_remaining": null,
+  "days_since_closed": 1980,
+  "allows_late_comments": true,
+  "withdrawn": false,
+  "source_url": "https://www.regulations.gov/document/FDA-2021-N-0270-0001",
+  "comment_url": "https://www.regulations.gov/commenton/FDA-2021-N-0270-0001",
+  "message": null
+}
+
+## Expected Behaviour Verified
+resolved_status:         closed_late_comments_accepted  ✓
+formal_deadline_correct: 2021-05-27                     ✓
+late_comment_qualified:  true                           ✓
+NOT described as simply open:                           ✓
+source_url_cited:        https://www.regulations.gov/document/FDA-2021-N-0270-0001  ✓
+
+## Pass/Fail
+tool_correct:       1
+response_correct:   1
+source_url_cited:   1
+latency_ms:         (not measured — no trace available)
+pass:               1

@@ -46,6 +46,7 @@ def test_comment_input_validation_rejects_before_network():
         mock_get.assert_not_called()
 
 
+@patch("src.clients.regulations_client.API_KEY", "TEST_KEY")
 @patch("src.clients.regulations_client.requests.get")
 def test_client_timeout_is_configured(mock_get):
     """Every outbound request sets an explicit timeout.
@@ -53,7 +54,9 @@ def test_client_timeout_is_configured(mock_get):
     Without a timeout, an unresponsive upstream would hang the agent
     indefinitely rather than failing gracefully.
     """
-    mock_get.return_value = _response(200)
+    r = _response(200)
+    r.json.return_value = {"data": {"attributes": {}, "id": "FDA-2021-N-0270-0001"}}
+    mock_get.return_value = r
 
     get_document("FDA-2021-N-0270-0001")
 

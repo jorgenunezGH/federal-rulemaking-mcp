@@ -1,0 +1,16 @@
+SCREENSHOT PLACEHOLDER — evaluations/agent_runs/A01/screenshot.png
+
+Replace this file with an actual PNG screenshot of the agent UI showing:
+  - The prompt sent to the agent
+  - The tool call made (get_document_details, document_id=FDA-2021-N-0270-0001)
+  - The final response with the Regulations.gov source URL
+
+Capture instructions:
+  1. Open the IBM watsonx Orchestrate or Bob agent chat interface.
+  2. Send the prompt: "Retrieve authoritative details for Regulations.gov document
+     FDA-2021-N-0270-0001 and cite the source."
+  3. Once the response is displayed, take a full-window screenshot.
+  4. Save it as screenshot.png in this directory, replacing this placeholder.
+
+Do NOT include any browser tabs, bookmarks, or system notifications that may
+contain credentials or session tokens. Crop if necessary.

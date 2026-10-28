@@ -1,0 +1,60 @@
+# Tool Trace — Run A03
+# Sanitized: no API keys, credentials, tokens, or secret-bearing headers included.
+
+## Reproducibility Metadata
+date_utc:        2026-10-28T19:16:18Z
+git_commit:      19f979bcd1496b7d62bebcb1dce6484e6768feb8
+branch:          integration/ibm-watsonx
+agent_name:      Bob (federal-rulemaking MCP agent)
+mcp_server:      federal-rulemaking-mcp (local stdio transport)
+container_image: (not captured — leave blank until Code Engine deployment is confirmed)
+code_engine_rev: (not captured)
+
+## Tool Selection
+prompt:          "What type of docket is FDA-2021-N-0270, and does it represent an actual rulemaking action?"
+selected_tool:   get_docket_details
+expected_tool:   get_docket_details
+tool_correct:    true
+
+## Tool Invocation
+tool:            mcp__federal-rulemaking_d234__get_docket_details
+arguments:
+  docket_id:     "FDA-2021-N-0270"
+
+## Raw Tool Response (sanitized)
+{
+  "docket_id": "FDA-2021-N-0270",
+  "title": "Endocrinologic and Metabolic Drugs Advisory Committee; Notice of Meeting; Establishment of a Public Docket; Request for Comments",
+  "short_title": null,
+  "agency_id": "FDA",
+  "program": "CDER",
+  "docket_type": "Nonrulemaking",
+  "is_rulemaking": false,
+  "rin": null,
+  "keywords": [
+    "2021-167",
+    "CDER",
+    "Notice",
+    "Endocrinologic and Metabolic Drugs",
+    "Advisory Committee;",
+    "Notice of Meeting; Establishment of a Public Docket;",
+    "Request for Comments",
+    "Open"
+  ],
+  "effective_date": null,
+  "modify_date": "2021-07-02T14:43:33Z",
+  "source_url": "https://www.regulations.gov/docket/FDA-2021-N-0270",
+  "message": null
+}
+
+## Expected Behaviour Verified
+docket_type:     Nonrulemaking        ✓
+is_rulemaking:   false                ✓
+source_url:      https://www.regulations.gov/docket/FDA-2021-N-0270  ✓
+
+## Pass/Fail
+tool_correct:       1
+response_correct:   1
+source_url_cited:   1
+latency_ms:         (not measured — no trace available)
+pass:               1

@@ -7,7 +7,12 @@ concern can be tested and reviewed in isolation.
 
 from datetime import datetime, timezone
 
-from mcp.server import MCPServer
+try:
+    # mcp 2.x (Orchestrate runtime)
+    from mcp.server.mcpserver import MCPServer
+except ImportError:
+    # mcp 1.x (local venv)
+    from mcp.server.fastmcp import FastMCP as MCPServer  # type: ignore[no-redef]
 from pydantic import ValidationError
 
 from src.clients.regulations_client import (
@@ -32,6 +37,7 @@ from src.models import (
 )
 
 mcp = MCPServer("federal-rulemaking-read")
+app = mcp  # alias used by some transports
 
 # Dockets, documents, and comment forms each use a distinct Regulations.gov
 # URL path, so provenance links must be built from the correct base for the

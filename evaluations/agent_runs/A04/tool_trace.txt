@@ -1,0 +1,81 @@
+# Tool Trace — Run A04
+# Sanitized: no API keys, credentials, tokens, or secret-bearing headers included.
+
+## Reproducibility Metadata
+date_utc:        2026-10-28T19:16:18Z
+git_commit:      19f979bcd1496b7d62bebcb1dce6484e6768feb8
+branch:          integration/ibm-watsonx
+agent_name:      Bob (federal-rulemaking MCP agent)
+mcp_server:      federal-rulemaking-mcp (local stdio transport)
+container_image: (not captured — leave blank until Code Engine deployment is confirmed)
+code_engine_rev: (not captured)
+
+## Tool Selection
+prompt:          "Find proposed rules about energy conservation standards and tell me which agencies have filed them recently."
+selected_tool:   search_rulemaking_documents
+expected_tool:   search_rulemaking_documents
+tool_correct:    true
+
+## Tool Invocation
+tool:            mcp__federal-rulemaking_d234__search_rulemaking_documents
+arguments:
+  search_term:   "energy conservation standards proposed rule"
+  document_type: "Proposed Rule"
+  page_size:     5
+
+## Raw Tool Response (sanitized)
+{
+  "total_found": 4786,
+  "results": [
+    {
+      "document_id": "EERE-2025-BT-STD-0014-0001",
+      "title": "2025-05-16  Energy Conservation Program: Energy Conservation Standards for Microwave Ovens; Proposed rule; request for comments",
+      "document_type": "Proposed Rule",
+      "posted_date": "2025-05-16T04:00:00Z",
+      "source_url": "https://www.regulations.gov/document/EERE-2025-BT-STD-0014-0001"
+    },
+    {
+      "document_id": "EERE-2025-BT-STD-0012-0001",
+      "title": "2025-05-16  Energy Conservation Program: Energy Conservation Standards for Conventional Ovens; Proposed rule; request for comments",
+      "document_type": "Proposed Rule",
+      "posted_date": "2025-05-16T04:00:00Z",
+      "source_url": "https://www.regulations.gov/document/EERE-2025-BT-STD-0012-0001"
+    },
+    {
+      "document_id": "EERE-2020-BT-STD-0013-0064",
+      "title": "2025-01-17  Energy Conservation Program: Energy Conservation Standards for Battery Chargers; Proposed rule; withdrawal",
+      "document_type": "Proposed Rule",
+      "posted_date": "2025-01-17T05:00:00Z",
+      "source_url": "https://www.regulations.gov/document/EERE-2020-BT-STD-0013-0064"
+    },
+    {
+      "document_id": "EERE-2022-BT-STD-0002-0188",
+      "title": "2025-01-17  Energy Conservation Program: Energy Conservation Standards for Fans and Blowers; Proposed rule; withdrawal",
+      "document_type": "Proposed Rule",
+      "posted_date": "2025-01-17T05:00:00Z",
+      "source_url": "https://www.regulations.gov/document/EERE-2022-BT-STD-0002-0188"
+    },
+    {
+      "document_id": "EERE-2019-BT-STD-0036-0092",
+      "title": "2025-01-17  Energy Conservation Program: Energy Conservation Standards for Consumer Boilers; Proposed rule; withdrawal",
+      "document_type": "Proposed Rule",
+      "posted_date": "2025-01-17T05:00:00Z",
+      "source_url": "https://www.regulations.gov/document/EERE-2019-BT-STD-0036-0092"
+    }
+  ],
+  "message": null
+}
+
+## Expected Behaviour Verified
+topic_search_used:      true                            ✓
+document_type_filtered: Proposed Rule                  ✓
+total_results_returned: 4786                           ✓
+source_urls_present:    true (all 5 results)           ✓
+agency_identified:      EERE (Dept. of Energy)         ✓
+
+## Pass/Fail
+tool_correct:       1
+response_correct:   1
+source_url_cited:   1
+latency_ms:         (not measured — no trace available)
+pass:               1

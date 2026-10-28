@@ -30,6 +30,7 @@ def _response(status_code: int, text: str = "", payload: dict | None = None) -> 
 # --- Rate limit (429) ---
 
 
+@patch("src.clients.regulations_client.API_KEY", "TEST_KEY")
 @patch("src.clients.regulations_client.requests.get")
 def test_search_raises_on_rate_limit(mock_get):
     """A 429 on search raises RegulationsClientError with retry guidance."""
@@ -43,6 +44,7 @@ def test_search_raises_on_rate_limit(mock_get):
     assert "retry" in message
 
 
+@patch("src.clients.regulations_client.API_KEY", "TEST_KEY")
 @patch("src.clients.regulations_client.requests.get")
 def test_get_document_raises_on_rate_limit(mock_get):
     """A 429 on document retrieval raises with retry guidance."""
@@ -54,6 +56,7 @@ def test_get_document_raises_on_rate_limit(mock_get):
     assert "rate limit" in str(exc.value).lower()
 
 
+@patch("src.clients.regulations_client.API_KEY", "TEST_KEY")
 @patch("src.clients.regulations_client.requests.get")
 def test_get_docket_raises_on_rate_limit(mock_get):
     """A 429 on docket retrieval raises with retry guidance."""
@@ -65,6 +68,7 @@ def test_get_docket_raises_on_rate_limit(mock_get):
     assert "rate limit" in str(exc.value).lower()
 
 
+@patch("src.clients.regulations_client.API_KEY", "TEST_KEY")
 @patch("src.clients.regulations_client.requests.get")
 def test_rate_limit_error_does_not_leak_response_body(mock_get):
     """The 429 message is a fixed string, not the upstream response text.
@@ -86,6 +90,7 @@ def test_rate_limit_error_does_not_leak_response_body(mock_get):
 # --- Not found (404) ---
 
 
+@patch("src.clients.regulations_client.API_KEY", "TEST_KEY")
 @patch("src.clients.regulations_client.requests.get")
 def test_get_document_raises_not_found_on_404(mock_get):
     """A 404 raises DocumentNotFoundError, distinct from a general error."""
@@ -97,6 +102,7 @@ def test_get_document_raises_not_found_on_404(mock_get):
     assert "FAKE-9999-X-0000-0001" in str(exc.value)
 
 
+@patch("src.clients.regulations_client.API_KEY", "TEST_KEY")
 @patch("src.clients.regulations_client.requests.get")
 def test_not_found_is_subclass_of_client_error(mock_get):
     """DocumentNotFoundError can be caught as RegulationsClientError.
@@ -113,6 +119,7 @@ def test_not_found_is_subclass_of_client_error(mock_get):
 # --- Other upstream errors ---
 
 
+@patch("src.clients.regulations_client.API_KEY", "TEST_KEY")
 @patch("src.clients.regulations_client.requests.get")
 def test_server_error_truncates_response_body(mock_get):
     """A 500 response body is truncated to limit leaked context."""
@@ -128,6 +135,7 @@ def test_server_error_truncates_response_body(mock_get):
     assert long_body not in message
 
 
+@patch("src.clients.regulations_client.API_KEY", "TEST_KEY")
 @patch("src.clients.regulations_client.requests.get")
 def test_unauthorized_raises_client_error(mock_get):
     """A 403 raises a client error rather than returning empty results."""

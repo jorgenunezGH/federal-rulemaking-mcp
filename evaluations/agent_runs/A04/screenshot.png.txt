@@ -1,0 +1,19 @@
+SCREENSHOT PLACEHOLDER — evaluations/agent_runs/A04/screenshot.png
+
+Replace this file with an actual PNG screenshot of the agent UI showing:
+  - The prompt: "Find proposed rules about energy conservation standards and tell
+    me which agencies have filed them recently."
+  - The tool call made: search_rulemaking_documents with search_term and
+    document_type=Proposed Rule
+  - The final response including:
+      * List of EERE proposed rule documents with source URLs
+      * Total result count
+
+Capture instructions:
+  1. Open the agent chat in a fresh conversation.
+  2. Send the prompt verbatim as shown above.
+  3. Once the response is displayed, take a full-window screenshot.
+  4. Save it as screenshot.png in this directory, replacing this placeholder.
+
+Do NOT include browser tabs, bookmarks, or system notifications that may reveal
+credentials or session tokens. Crop if necessary.
