@@ -31,3 +31,6 @@ discover_fields.py
 evaluations/baseline_check.txt
 evaluations/traceability_report.txt
 build_record.txt
+auditors-plan.md
+evaluations/test_run_baseline.txt
+evaluations/venv_packages.txt

@@ -38,3 +38,4 @@ __pycache__/
 
 # Build provenance record — not needed inside the container
 build_record.txt
+auditors-plan.md
