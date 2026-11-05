@@ -34,3 +34,6 @@ build_record.txt
 auditors-plan.md
 evaluations/test_run_baseline.txt
 evaluations/venv_packages.txt
+
+# Bob session artifacts — runtime workspace; contents not guaranteed safe for VCS
+.bob/

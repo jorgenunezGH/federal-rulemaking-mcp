@@ -39,3 +39,6 @@ __pycache__/
 # Build provenance record — not needed inside the container
 build_record.txt
 auditors-plan.md
+
+# Bob session artifacts — not needed in container
+.bob/

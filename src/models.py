@@ -1,5 +1,6 @@
 """Typed input/output models for MCP tools."""
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -177,4 +178,205 @@ class CommentRequirementsOutput(BaseModel):
     withdrawn: bool | None = None
     source_url: str
     comment_url: str | None = None
+    message: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# IOLP — Inventory of Owned and Leased Properties
+# Source: https://catalog.data.gov/dataset/inventory-of-owned-and-leased-properties-iolp
+# Two XLSX datasets: "leases" and "buildings" (each ~7–8k rows).
+# ---------------------------------------------------------------------------
+
+# Valid dataset identifiers shared by search and detail tools.
+IolpDataset = Literal["leases", "buildings"]
+
+
+class IolpSearchInput(BaseModel):
+    """Input for search_federal_properties."""
+
+    q: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Keyword or phrase to search in property name, address, city, "
+            "or state (case-insensitive substring match)."
+        ),
+    )
+    dataset: IolpDataset | None = Field(
+        None,
+        description=(
+            "Which dataset to search: 'leases', 'buildings', or omit for both."
+        ),
+    )
+    state: str | None = Field(
+        None,
+        description="Two-letter US state abbreviation filter, e.g. 'VA'.",
+    )
+    city: str | None = Field(
+        None,
+        description="City name filter (case-insensitive exact match), e.g. 'BOSTON'.",
+    )
+    building_status: str | None = Field(
+        None,
+        description=(
+            "Buildings-only status filter, e.g. 'ACTIVE' or 'INACTIVE'. "
+            "Ignored when dataset='leases'."
+        ),
+    )
+    owned_or_leased: str | None = Field(
+        None,
+        description=(
+            "Buildings-only ownership filter: 'OWNED', 'LEASED', etc. "
+            "Ignored when dataset='leases'."
+        ),
+    )
+    limit: int = Field(
+        10,
+        ge=1,
+        le=100,
+        description="Maximum number of results to return (1–100, default 10).",
+    )
+    offset: int = Field(
+        0,
+        ge=0,
+        description="Number of matching records to skip for pagination (default 0).",
+    )
+
+
+class IolpPropertyRecord(BaseModel):
+    """A single property result row from the IOLP dataset."""
+
+    location_code: str | None = None
+    real_property_asset_name: str | None = None
+    dataset: str  # 'leases' or 'buildings'
+    street_address: str | None = None
+    city: str | None = None
+    state: str | None = None
+    zip_code: str | None = None
+    gsa_region: int | None = None
+    real_property_asset_type: str | None = None
+    building_rentable_sq_ft: float | None = None
+    # buildings-only
+    owned_or_leased: str | None = None
+    building_status: str | None = None
+    # leases-only
+    lease_number: str | None = None
+    lease_effective_date: str | None = None
+    lease_expiration_date: str | None = None
+    source_url: str
+
+
+class IolpSearchOutput(BaseModel):
+    """Output for search_federal_properties.
+
+    Provenance contract
+    -------------------
+    source_url          — catalog landing page; always present.
+
+    sources_attempted   — XLSX URLs for which an HTTP request was issued.
+                          Empty when validation failed before any request.
+    sources_retrieved   — XLSX URLs successfully downloaded AND parsed.
+                          A URL may be attempted but not retrieved (e.g. on
+                          HTTP error or invalid workbook).
+
+    fetch_attempted_at  — UTC timestamp of the first HTTP attempt.
+                          Null when no request was made (validation failure).
+    retrieved_at_utc    — UTC timestamp of first attempt when ALL sources were
+                          successfully retrieved; null otherwise.  Do not use
+                          this as a retrieval timestamp when any source failed.
+
+    truncated           — True when the per-dataset row_limit was reached;
+                          total_found and result rankings are then partial.
+    row_limit           — per-dataset row cap in effect; null when no scan ran.
+    records_scanned     — rows processed across all datasets in this call.
+    """
+
+    total_found: int
+    returned: int
+    results: list[IolpPropertyRecord]
+    source_url: str
+    sources_attempted: list[str]      # empty when no HTTP was attempted
+    sources_retrieved: list[str]      # empty when retrieval failed
+    fetch_attempted_at: str | None    # null when no HTTP was attempted
+    retrieved_at_utc: str | None      # null when not all sources retrieved
+    truncated: bool = False
+    row_limit: int | None = None
+    records_scanned: int | None = None
+    message: str | None = None
+
+
+class IolpPropertyDetailInput(BaseModel):
+    """Input for get_property_details."""
+
+    location_code: str = Field(
+        ...,
+        min_length=2,
+        description=(
+            "IOLP Location Code that uniquely identifies the property, "
+            "for example 'CT3414' or 'MA6048'."
+        ),
+    )
+    dataset: IolpDataset | None = Field(
+        None,
+        description=(
+            "Which dataset to search: 'leases', 'buildings', or omit to "
+            "search both. When the same Location Code appears in more than "
+            "one dataset, supply this field to select the intended record."
+        ),
+    )
+    lease_number: str | None = Field(
+        None,
+        description=(
+            "Optional lease number to disambiguate when a Location Code "
+            "maps to multiple leases, e.g. 'LCA00229'. When supplied and "
+            "the dataset contains multiple rows for the Location Code, only "
+            "the row with this Lease Number is returned."
+        ),
+    )
+
+
+class IolpPropertyDetailOutput(BaseModel):
+    """Full record for a single IOLP property.
+
+    congressional_district is included as-is from the XLSX.
+    The representative name field has been omitted: property records do not
+    constitute an authoritative or current source for that information.
+    """
+
+    location_code: str | None = None
+    real_property_asset_name: str | None = None
+    installation_name: str | None = None
+    # 'leases' or 'buildings' — identifies which XLSX the record came from.
+    dataset: str
+    street_address: str | None = None
+    city: str | None = None
+    state: str | None = None
+    zip_code: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    gsa_region: int | None = None
+    real_property_asset_type: str | None = None
+    building_rentable_sq_ft: float | None = None
+    available_sq_ft: float | None = None
+    congressional_district: str | None = None
+    # buildings-only
+    owned_or_leased: str | None = None
+    building_status: str | None = None
+    construction_date: int | None = None
+    # leases-only
+    federal_leased_code: str | None = None
+    lease_number: str | None = None
+    lease_effective_date: str | None = None
+    lease_expiration_date: str | None = None
+    # Provenance contract (mirrors IolpSearchOutput):
+    #   source_url         — catalog landing page; always present.
+    #   source_file        — exact XLSX URL parsed; null when no fetch occurred.
+    #   fetch_attempted_at — UTC timestamp of first HTTP attempt; null on
+    #                        validation failure or pre-fetch error.
+    #   retrieved_at_utc   — same as fetch_attempted_at when retrieval and
+    #                        parsing both succeeded; null otherwise.
+    source_url: str
+    source_file: str | None           # null on validation failure / pre-fetch error
+    fetch_attempted_at: str | None    # null on validation failure / pre-fetch error
+    retrieved_at_utc: str | None      # null when retrieval or parsing did not complete
     message: str | None = None

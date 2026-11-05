@@ -15,6 +15,14 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP as MCPServer  # type: ignore[no-redef]
 from pydantic import ValidationError
 
+from src.clients.iolp_client import (
+    IolpAmbiguousRecordError,
+    IolpClientError,
+    IolpFetchError,
+    IolpRecordNotFoundError,
+    get_property,
+    search_properties,
+)
 from src.clients.regulations_client import (
     DocumentNotFoundError,
     RegulationsClientError,
@@ -32,6 +40,11 @@ from src.models import (
     DocumentDetailInput,
     DocumentDetailOutput,
     DocumentResult,
+    IolpPropertyDetailInput,
+    IolpPropertyDetailOutput,
+    IolpPropertyRecord,
+    IolpSearchInput,
+    IolpSearchOutput,
     SearchInput,
     SearchOutput,
 )
@@ -45,6 +58,10 @@ app = mcp  # alias used by some transports
 REG_GOV_DOC_BASE = "https://www.regulations.gov/document/"
 REG_GOV_DOCKET_BASE = "https://www.regulations.gov/docket/"
 REG_GOV_COMMENT_BASE = "https://www.regulations.gov/commenton/"
+
+IOLP_DATASET_URL = (
+    "https://catalog.data.gov/dataset/inventory-of-owned-and-leased-properties-iolp"
+)
 
 
 @mcp.tool()
@@ -317,6 +334,277 @@ def get_comment_requirements(document_id: str) -> dict:
         withdrawn=attrs.get("withdrawn"),
         source_url=f"{REG_GOV_DOC_BASE}{resolved_id}",
         comment_url=comment_url,
+    ).model_dump()
+
+
+@mcp.tool()
+def search_federal_properties(
+    q: str,
+    dataset: str | None = None,
+    state: str | None = None,
+    city: str | None = None,
+    building_status: str | None = None,
+    owned_or_leased: str | None = None,
+    limit: int = 10,
+    offset: int = 0,
+) -> dict:
+    """Search the federal Inventory of Owned and Leased Properties (IOLP).
+
+    Searches across GSA leases and/or owned buildings by keyword, with
+    optional filters for state, city, building status, and ownership type.
+    Results include location code, address, square footage, and a source_url
+    pointing to the IOLP dataset on catalog.data.gov.
+
+    Args:
+        q: Keyword to search in property name, address, city, or state.
+        dataset: 'leases', 'buildings', or omit for both.
+        state: Two-letter state abbreviation, e.g. 'VA'.
+        city: City name filter, e.g. 'BOSTON'.
+        building_status: Buildings only — e.g. 'ACTIVE' or 'INACTIVE'.
+        owned_or_leased: Buildings only — e.g. 'OWNED' or 'LEASED'.
+        limit: Results per page (1–100, default 10).
+        offset: Records to skip for pagination (default 0).
+    """
+    try:
+        params = IolpSearchInput(
+            q=q,
+            dataset=dataset,
+            state=state,
+            city=city,
+            building_status=building_status,
+            owned_or_leased=owned_or_leased,
+            limit=limit,
+            offset=offset,
+        )
+    except Exception as e:  # pydantic ValidationError
+        # Validation failed before any HTTP request — no retrieval occurred.
+        return IolpSearchOutput(
+            total_found=0,
+            returned=0,
+            results=[],
+            source_url=IOLP_DATASET_URL,
+            sources_attempted=[],
+            sources_retrieved=[],
+            fetch_attempted_at=None,
+            retrieved_at_utc=None,
+            message=f"Invalid search parameters: {e}",
+        ).model_dump()
+
+    try:
+        raw = search_properties(
+            q=params.q,
+            dataset=params.dataset,
+            state=params.state,
+            city=params.city,
+            building_status=params.building_status,
+            owned_or_leased=params.owned_or_leased,
+            limit=params.limit,
+            offset=params.offset,
+        )
+    except IolpClientError as e:
+        # Preserve attempted-source provenance when the error carries it.
+        sa = [e.attempted_url] if isinstance(e, IolpFetchError) and e.attempted_url else []
+        fat = e.fetch_attempted_at if isinstance(e, IolpFetchError) else None
+        return IolpSearchOutput(
+            total_found=0,
+            returned=0,
+            results=[],
+            source_url=IOLP_DATASET_URL,
+            sources_attempted=sa,
+            sources_retrieved=[],
+            fetch_attempted_at=fat,
+            retrieved_at_utc=None,
+            message=f"Could not retrieve IOLP data: {e}",
+        ).model_dump()
+
+    trunc_note = (
+        f"Partial results: the processing limit was reached "
+        f"({raw['records_scanned']:,} of up to {raw['row_limit']:,} "
+        f"rows per dataset scanned). Counts and rankings describe only "
+        f"the records scanned."
+        if raw["truncated"] else None
+    )
+
+    if not raw["records"]:
+        return IolpSearchOutput(
+            total_found=0,
+            returned=0,
+            results=[],
+            source_url=IOLP_DATASET_URL,
+            sources_attempted=raw["sources_attempted"],
+            sources_retrieved=raw["sources_retrieved"],
+            fetch_attempted_at=raw["fetch_attempted_at"],
+            retrieved_at_utc=raw["retrieved_at_utc"],
+            truncated=raw["truncated"],
+            row_limit=raw["row_limit"],
+            records_scanned=raw["records_scanned"],
+            message=trunc_note or "No matching federal properties found.",
+        ).model_dump()
+
+    results = []
+    for rec in raw["records"]:
+        ds = rec.get("_dataset", "unknown")
+        sqft = rec.get("Building Rentable Square Feet")
+        results.append(
+            IolpPropertyRecord(
+                location_code=rec.get("Location Code"),
+                real_property_asset_name=rec.get("Real Property Asset Name"),
+                dataset=ds,
+                street_address=rec.get("Street Address"),
+                city=rec.get("City"),
+                state=rec.get("State"),
+                zip_code=str(rec["Zip Code"]) if rec.get("Zip Code") is not None else None,
+                gsa_region=int(rec["GSA Region"]) if rec.get("GSA Region") is not None else None,
+                real_property_asset_type=rec.get(
+                    "Real Property Asset Type" if ds == "buildings" else "Real Property Asset type"
+                ),
+                building_rentable_sq_ft=float(sqft) if sqft is not None else None,
+                owned_or_leased=rec.get("Owned or Leased"),
+                building_status=rec.get("Building Status"),
+                lease_number=rec.get("Lease Number"),
+                lease_effective_date=str(rec["Lease Effective Date"]) if rec.get("Lease Effective Date") is not None else None,
+                lease_expiration_date=str(rec["Lease Expiration Date"]) if rec.get("Lease Expiration Date") is not None else None,
+                source_url=IOLP_DATASET_URL,
+            )
+        )
+
+    return IolpSearchOutput(
+        total_found=raw["total"],
+        returned=raw["returned"],
+        results=results,
+        source_url=IOLP_DATASET_URL,
+        sources_attempted=raw["sources_attempted"],
+        sources_retrieved=raw["sources_retrieved"],
+        fetch_attempted_at=raw["fetch_attempted_at"],
+        retrieved_at_utc=raw["retrieved_at_utc"],
+        truncated=raw["truncated"],
+        row_limit=raw["row_limit"],
+        records_scanned=raw["records_scanned"],
+        message=trunc_note,
+    ).model_dump()
+
+
+@mcp.tool()
+def get_property_details(
+    location_code: str,
+    dataset: str | None = None,
+    lease_number: str | None = None,
+) -> dict:
+    """Retrieve full details for a single federal property by its IOLP Location Code.
+
+    Searches the leases and/or buildings IOLP datasets. Returns the complete
+    record including address, square footage, coordinates, congressional
+    district, and lease or ownership information.
+
+    When the same Location Code appears in both datasets, supply dataset=
+    to select the intended record ('leases' or 'buildings').
+
+    When a Location Code maps to multiple lease rows (e.g. CA6395), supply
+    lease_number= (e.g. 'LCA00229') to pinpoint the specific lease record.
+
+    Every response includes source_file (the exact XLSX URL queried),
+    fetch_attempted_at, and retrieved_at_utc so results can be traced to
+    a specific data snapshot. retrieved_at_utc is null when retrieval
+    did not complete.
+
+    Args:
+        location_code: The IOLP Location Code, e.g. 'CT3414' or 'MA6048'.
+        dataset: 'leases', 'buildings', or omit to search both.
+        lease_number: Optional lease number disambiguator, e.g. 'LCA00229'.
+    """
+    try:
+        params = IolpPropertyDetailInput(
+            location_code=location_code,
+            dataset=dataset,
+            lease_number=lease_number,
+        )
+    except Exception as e:
+        # Validation failed before any HTTP request.
+        return IolpPropertyDetailOutput(
+            dataset="unknown",
+            source_url=IOLP_DATASET_URL,
+            source_file=None,
+            fetch_attempted_at=None,
+            retrieved_at_utc=None,
+            message=f"Invalid location code: {e}",
+        ).model_dump()
+
+    try:
+        rec = get_property(
+            params.location_code,
+            dataset=params.dataset,
+            lease_number=params.lease_number,
+        )
+    except IolpAmbiguousRecordError as e:
+        # Fetch occurred but result is ambiguous — preserve the attempt timestamp.
+        return IolpPropertyDetailOutput(
+            dataset="unknown",
+            source_url=IOLP_DATASET_URL,
+            source_file=None,
+            fetch_attempted_at=e.fetch_attempted_at,
+            retrieved_at_utc=None,
+            message=str(e),
+        ).model_dump()
+    except IolpRecordNotFoundError as e:
+        # Fetch occurred but no record found — preserve the attempt timestamp.
+        return IolpPropertyDetailOutput(
+            dataset="unknown",
+            source_url=IOLP_DATASET_URL,
+            source_file=None,
+            fetch_attempted_at=e.fetch_attempted_at,
+            retrieved_at_utc=None,
+            message=str(e),
+        ).model_dump()
+    except IolpClientError as e:
+        # Preserve attempted-source provenance when the error carries it.
+        sa = [e.attempted_url] if isinstance(e, IolpFetchError) and e.attempted_url else []
+        fat = e.fetch_attempted_at if isinstance(e, IolpFetchError) else None
+        return IolpPropertyDetailOutput(
+            dataset="unknown",
+            source_url=IOLP_DATASET_URL,
+            source_file=None,
+            fetch_attempted_at=fat,
+            retrieved_at_utc=None,
+            message=f"Could not retrieve property: {e}",
+        ).model_dump()
+
+    ds = rec.get("_dataset", "unknown")
+    sqft = rec.get("Building Rentable Square Feet")
+    avail = rec.get("Available Square Feet")
+    lat = rec.get("Latitude")
+    lon = rec.get("Longitude")
+    region = rec.get("GSA Region")
+    const = rec.get("Construction Date")
+
+    return IolpPropertyDetailOutput(
+        location_code=rec.get("Location Code"),
+        real_property_asset_name=rec.get("Real Property Asset Name"),
+        installation_name=rec.get("Installation Name"),
+        dataset=ds,
+        street_address=rec.get("Street Address"),
+        city=rec.get("City"),
+        state=rec.get("State"),
+        zip_code=str(rec["Zip Code"]) if rec.get("Zip Code") is not None else None,
+        latitude=float(lat) if lat is not None else None,
+        longitude=float(lon) if lon is not None else None,
+        gsa_region=int(region) if region is not None else None,
+        real_property_asset_type=rec.get(
+            "Real Property Asset Type" if ds == "buildings" else "Real Property Asset type"
+        ),
+        building_rentable_sq_ft=float(sqft) if sqft is not None else None,
+        available_sq_ft=float(avail) if avail is not None else None,
+        congressional_district=str(rec["Congressional District"]) if rec.get("Congressional District") is not None else None,
+        owned_or_leased=rec.get("Owned or Leased"),
+        building_status=rec.get("Building Status"),
+        construction_date=int(const) if const is not None else None,
+        federal_leased_code=rec.get("Federal Leased Code"),
+        lease_number=rec.get("Lease Number"),
+        lease_effective_date=str(rec["Lease Effective Date"]) if rec.get("Lease Effective Date") is not None else None,
+        lease_expiration_date=str(rec["Lease Expiration Date"]) if rec.get("Lease Expiration Date") is not None else None,
+        source_url=IOLP_DATASET_URL,
+        source_file=rec.get("_source_file"),
+        fetch_attempted_at=rec.get("_fetch_attempted_at"),
+        retrieved_at_utc=rec.get("_retrieved_at_utc"),
     ).model_dump()
 
 

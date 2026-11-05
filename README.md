@@ -28,12 +28,32 @@ See [`docs/use_case.md`](docs/use_case.md) for the full use case.
 
 ## Tools
 
+### Rulemaking tools — data source: [Regulations.gov API v4](https://open.gsa.gov/api/regulationsgov/)
+
 | Tool | Analyst question it answers |
 | --- | --- |
 | `search_rulemaking_documents` | What rules exist on this topic? |
 | `get_document_details` | What does this specific filing say? |
 | `get_docket_details` | Is this an active rulemaking or a one-off notice? |
 | `get_comment_requirements` | Can we still comment, and by when? |
+
+### Federal property tools — data source: [IOLP dataset, catalog.data.gov](https://catalog.data.gov/dataset/inventory-of-owned-and-leased-properties-iolp)
+
+**Extension under evaluation:** read-only federal-property discovery and detail
+retrieval to support PBS research. These tools provide property context for human
+review; they do not determine regulatory applicability, compliance, or
+project-specific impacts.
+
+| Tool | Analyst question it answers |
+| --- | --- |
+| `search_federal_properties` | Which federal leases or owned buildings match this keyword, state, or city? |
+| `get_property_details` | What are the full details for this specific property (by Location Code)? |
+
+**Data delivery:** The IOLP dataset is distributed as two XLSX files (~7,000 rows
+each). Each tool response includes `source_file` (the exact XLSX URL fetched),
+`retrieved_at_utc` (fetch timestamp), and `source_url` (catalog page). A
+`dataset` field on every record identifies whether the record came from the
+leases or buildings file.
 
 Full input and output contracts, including failure modes:
 [`docs/tool_contracts.md`](docs/tool_contracts.md)
