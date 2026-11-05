@@ -24,6 +24,7 @@ from unittest.mock import MagicMock, patch
 import openpyxl
 import pytest
 
+from src.clients.iolp_client import LEASES_URL, BUILDINGS_URL
 from src.server import get_property_details
 
 
@@ -62,11 +63,27 @@ def _make_xlsx(headers: list, rows: list[list]) -> bytes:
     return buf.read()
 
 
-def _mock_response(content: bytes, status: int = 200) -> MagicMock:
+def _mock_response(
+    content: bytes,
+    status: int = 200,
+    content_length: int | None = None,
+) -> MagicMock:
+    """Build a streaming-compatible mock response.
+
+    Supports the new _fetch_xlsx interface:
+    - allow_redirects=False  → status must not be 3xx (use status=200 or error)
+    - stream=True            → iter_content(chunk_size=N) returns an iterator
+    - resp.close()           → no-op MagicMock
+
+    content_length: when set, adds a Content-Length header.
+    """
     m = MagicMock()
     m.status_code = status
-    m.content = content
-    m.text = ""
+    m.headers = {}
+    if content_length is not None:
+        m.headers["Content-Length"] = str(content_length)
+    m.iter_content.side_effect = lambda chunk_size=65536: iter([content] if content else [b""])
+    m.close = MagicMock()
     return m
 
 
@@ -116,9 +133,9 @@ def test_within_dataset_duplicate_lease_numbers_in_message():
     assert "LCT00005" in msg or "LCT00099" in msg
     assert "2" in msg  # "matched 2 rows" or similar
     assert result["source_url"].startswith("https://")
-    # Provenance: fetch occurred but is ambiguous — source_file null, but
-    # fetch_attempted_at must be a real timestamp (fetch did happen)
-    assert result["source_file"] is None
+    # Provenance: fetch succeeded (within-dataset ambiguity) — source_file is
+    # the XLSX URL that was downloaded, not None (C2 contract).
+    assert result["source_file"] == LEASES_URL
     assert result["fetch_attempted_at"] is not None
 
 
@@ -426,7 +443,8 @@ def test_not_found_null_source_file():
 
     assert result["dataset"] == "unknown"
     assert "ZZZNOTEXIST" in result["message"]
-    assert result["source_file"] is None
+    # Both datasets were fetched; source_file is the last retrieved URL (C2 contract).
+    assert result["source_file"] == BUILDINGS_URL
     assert result["source_url"].startswith("https://")
     # Fetch occurred (datasets were downloaded) — timestamp must be present
     assert result["fetch_attempted_at"] is not None
@@ -451,7 +469,8 @@ def test_ambiguity_preserves_fetch_attempted_at():
         result = get_property_details("CT3414")
 
     assert result["dataset"] == "unknown"
-    assert result["source_file"] is None
+    # source_file is the XLSX that was fetched (within-dataset ambiguity, C2 contract).
+    assert result["source_file"] == LEASES_URL
     assert result["fetch_attempted_at"] is not None
     assert re.match(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", result["fetch_attempted_at"])
     assert result["retrieved_at_utc"] is None
@@ -490,7 +509,8 @@ def test_truncated_scan_one_match_raises_ambiguity():
     assert result["message"] is not None
     msg = result["message"].lower()
     assert "incomplete" in msg or "limit" in msg or "uniqueness" in msg or "truncated" in msg.lower()
-    assert result["source_file"] is None
+    # source_file is the XLSX URL of the candidate (truncated-scan ambiguity, C2 contract).
+    assert result["source_file"] == LEASES_URL
 
 
 # ---------------------------------------------------------------------------

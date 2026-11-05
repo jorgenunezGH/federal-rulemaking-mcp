@@ -59,11 +59,28 @@ def _make_xlsx(headers: list, rows: list[list]) -> bytes:
     return buf.read()
 
 
-def _mock_response(content: bytes, status: int = 200) -> MagicMock:
+def _mock_response(
+    content: bytes,
+    status: int = 200,
+    content_length: int | None = None,
+) -> MagicMock:
+    """Build a streaming-compatible mock response.
+
+    Supports the new _fetch_xlsx interface:
+    - allow_redirects=False  → status must not be 3xx (use status=200 or error)
+    - stream=True            → iter_content(chunk_size=N) returns an iterator
+    - resp.close()           → no-op MagicMock
+
+    content_length: when set, adds a Content-Length header.
+    """
     m = MagicMock()
     m.status_code = status
-    m.content = content
-    m.text = ""
+    m.headers = {}
+    if content_length is not None:
+        m.headers["Content-Length"] = str(content_length)
+    # iter_content returns the body in a single chunk each time it is called.
+    m.iter_content.side_effect = lambda chunk_size=65536: iter([content] if content else [b""])
+    m.close = MagicMock()
     return m
 
 

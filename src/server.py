@@ -475,6 +475,7 @@ def search_federal_properties(
         source_url=IOLP_DATASET_URL,
         sources_attempted=raw["sources_attempted"],
         sources_retrieved=raw["sources_retrieved"],
+        sources_sha256=raw.get("sources_sha256", []),
         fetch_attempted_at=raw["fetch_attempted_at"],
         retrieved_at_utc=raw["retrieved_at_utc"],
         truncated=raw["truncated"],
@@ -536,21 +537,23 @@ def get_property_details(
             lease_number=params.lease_number,
         )
     except IolpAmbiguousRecordError as e:
-        # Fetch occurred but result is ambiguous — preserve the attempt timestamp.
+        # Fetch occurred but result is ambiguous — preserve all provenance fields.
         return IolpPropertyDetailOutput(
             dataset="unknown",
             source_url=IOLP_DATASET_URL,
-            source_file=None,
+            source_file=e.source_file,
+            source_sha256=e.source_sha256,
             fetch_attempted_at=e.fetch_attempted_at,
             retrieved_at_utc=None,
             message=str(e),
         ).model_dump()
     except IolpRecordNotFoundError as e:
-        # Fetch occurred but no record found — preserve the attempt timestamp.
+        # Fetch occurred but no record found — preserve all provenance fields.
         return IolpPropertyDetailOutput(
             dataset="unknown",
             source_url=IOLP_DATASET_URL,
-            source_file=None,
+            source_file=e.source_file,
+            source_sha256=e.source_sha256,
             fetch_attempted_at=e.fetch_attempted_at,
             retrieved_at_utc=None,
             message=str(e),
@@ -603,6 +606,7 @@ def get_property_details(
         lease_expiration_date=str(rec["Lease Expiration Date"]) if rec.get("Lease Expiration Date") is not None else None,
         source_url=IOLP_DATASET_URL,
         source_file=rec.get("_source_file"),
+        source_sha256=rec.get("_source_sha256"),
         fetch_attempted_at=rec.get("_fetch_attempted_at"),
         retrieved_at_utc=rec.get("_retrieved_at_utc"),
     ).model_dump()

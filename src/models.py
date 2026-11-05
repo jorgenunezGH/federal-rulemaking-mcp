@@ -297,6 +297,14 @@ class IolpSearchOutput(BaseModel):
     source_url: str
     sources_attempted: list[str]      # empty when no HTTP was attempted
     sources_retrieved: list[str]      # empty when retrieval failed
+    sources_sha256: list[str] = Field(
+        default_factory=list,
+        description=(
+            "SHA-256 hex digests of the exact bytes downloaded for each "
+            "successfully retrieved source, in the same order as "
+            "sources_retrieved. Empty when no source was retrieved."
+        ),
+    )
     fetch_attempted_at: str | None    # null when no HTTP was attempted
     retrieved_at_utc: str | None      # null when not all sources retrieved
     truncated: bool = False
@@ -377,6 +385,7 @@ class IolpPropertyDetailOutput(BaseModel):
     #                        parsing both succeeded; null otherwise.
     source_url: str
     source_file: str | None           # null on validation failure / pre-fetch error
+    source_sha256: str | None = None  # hex SHA-256 of XLSX bytes; null when no fetch
     fetch_attempted_at: str | None    # null on validation failure / pre-fetch error
     retrieved_at_utc: str | None      # null when retrieval or parsing did not complete
     message: str | None = None
