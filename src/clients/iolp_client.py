@@ -130,9 +130,15 @@ _ALLOWED_SCHEMES = frozenset({"https"})
 #   virtual-hosted-style bucket URL (e.g. bucket-name.s3.amazonaws.com or
 #   s3.region.amazonaws.com).
 #
+# s3-us-gov-west-1.amazonaws.com — AWS GovCloud (US-West) S3 regional endpoint.
+#   inventory.data.gov is hosted on cloud.gov (a GSA FedRAMP platform backed by
+#   AWS GovCloud).  Live HEAD checks confirm the download redirects to this exact
+#   host; it is therefore permitted as an additional exact match.
+#
 # Deliberately excluded:
 #   - Bare ``amazonaws.com`` — would permit SQS, SNS, EC2, and every other
 #     AWS service at *.amazonaws.com, far beyond the S3 storage tier needed here.
+#   - Wildcard ``*.amazonaws.com`` — same reason; too broad.
 #   - ``data.gov`` — parent domain of inventory.data.gov; too broad.
 #
 # The host check in _validate_redirect_url enforces these rules explicitly
@@ -140,6 +146,7 @@ _ALLOWED_SCHEMES = frozenset({"https"})
 _ALLOWED_HOSTS = frozenset({
     "inventory.data.gov",
     "s3.amazonaws.com",
+    "s3-us-gov-west-1.amazonaws.com",
 })
 
 # Required columns in each dataset. Missing any of these raises IolpClientError
@@ -267,19 +274,26 @@ def _is_permitted_iolp_host(netloc: str) -> bool:
     IOLP download host.
 
     Permitted patterns:
-    - ``inventory.data.gov``           — exact match only.
-    - ``s3.amazonaws.com``             — exact match (path-style S3).
-    - ``*.s3.amazonaws.com``           — virtual-hosted or regional S3 bucket
-                                         (e.g. bucket.s3.amazonaws.com).
+    - ``inventory.data.gov``              — exact match only.
+    - ``s3.amazonaws.com``                — exact match (path-style S3).
+    - ``*.s3.amazonaws.com``              — virtual-hosted or regional S3 bucket
+                                            (e.g. bucket.s3.amazonaws.com).
+    - ``s3-us-gov-west-1.amazonaws.com``  — AWS GovCloud (US-West) S3; exact match.
+                                            inventory.data.gov redirects here in
+                                            production (confirmed by live HEAD check
+                                            2026-11-06).
 
-    All other hostnames are rejected, including bare ``amazonaws.com`` and
-    non-S3 AWS services such as sqs.amazonaws.com, sns.amazonaws.com, etc.
+    All other hostnames are rejected, including bare ``amazonaws.com``,
+    non-S3 AWS services (sqs.amazonaws.com, sns.amazonaws.com, etc.), and
+    arbitrary ``*.amazonaws.com`` subdomains.
     """
     if netloc == "inventory.data.gov":
         return True
     if netloc == "s3.amazonaws.com":
         return True
     if netloc.endswith(".s3.amazonaws.com"):
+        return True
+    if netloc == "s3-us-gov-west-1.amazonaws.com":
         return True
     return False
 

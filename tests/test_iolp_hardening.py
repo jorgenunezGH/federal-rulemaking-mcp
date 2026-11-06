@@ -770,3 +770,140 @@ def test_h28_source_sha256_aligns_with_source_file_on_ambiguous():
         f"Reported SHA-256 {reported_sha256!r} does not match the bytes "
         f"served at {reported_source_file!r} (expected {correct_sha256!r})"
     )
+
+
+# ---------------------------------------------------------------------------
+# H29–H36  GovCloud S3 redirect — positive and negative host checks
+# (Added after live HEAD check confirmed inventory.data.gov → GovCloud S3)
+# ---------------------------------------------------------------------------
+
+def test_h29_govcloud_west1_exact_match_permitted():
+    """s3-us-gov-west-1.amazonaws.com must be permitted — exact match added
+    after confirming inventory.data.gov redirects to this host in production."""
+    assert _is_permitted_iolp_host("s3-us-gov-west-1.amazonaws.com"), (
+        "s3-us-gov-west-1.amazonaws.com must be permitted (GovCloud S3 exact match)"
+    )
+
+
+def test_h30_govcloud_west1_redirect_validation_passes():
+    """_validate_redirect_url must not raise for s3-us-gov-west-1.amazonaws.com."""
+    ts = "2026-11-06T00:36:19Z"
+    # Must not raise — mirrors the actual production redirect destination
+    _validate_redirect_url(
+        "https://s3-us-gov-west-1.amazonaws.com/cg-ae4ac6ad-c789-4bb7-b830-7f1ebeebfd41"
+        "/datagov/inventory-next/resources/13886719-6b8a-4596-8c82-5b32664005f7"
+        "/2026-10-30-iolp-leases.xlsx",
+        origin_url=LEASES_URL,
+        ts=ts,
+    )
+
+
+def test_h31_govcloud_west1_subdomain_rejected():
+    """A subdomain of s3-us-gov-west-1.amazonaws.com must be rejected.
+    Only the exact hostname is permitted, not arbitrary subdomains."""
+    host = "bucket.s3-us-gov-west-1.amazonaws.com"
+    assert not _is_permitted_iolp_host(host), (
+        f"{host!r} must NOT be permitted; only the exact host is allowed"
+    )
+    ts = "2026-11-06T00:36:19Z"
+    with pytest.raises(IolpFetchError):
+        _validate_redirect_url(
+            f"https://{host}/file.xlsx",
+            origin_url=LEASES_URL,
+            ts=ts,
+        )
+
+
+def test_h32_govcloud_east1_not_permitted():
+    """s3-us-gov-east-1.amazonaws.com (a different GovCloud region) must be
+    rejected — only the specific west-1 region confirmed by live check is allowed."""
+    host = "s3-us-gov-east-1.amazonaws.com"
+    assert not _is_permitted_iolp_host(host), (
+        f"{host!r} must NOT be permitted; east-1 GovCloud not observed in production"
+    )
+    ts = "2026-11-06T00:36:19Z"
+    with pytest.raises(IolpFetchError):
+        _validate_redirect_url(
+            f"https://{host}/file.xlsx",
+            origin_url=LEASES_URL,
+            ts=ts,
+        )
+
+
+def test_h33_govcloud_suffix_spoof_rejected():
+    """A hostname constructed to end with 's3-us-gov-west-1.amazonaws.com' as
+    a suffix (not exact match) must be rejected."""
+    host = "evil.s3-us-gov-west-1.amazonaws.com"
+    assert not _is_permitted_iolp_host(host), (
+        f"{host!r} must NOT be permitted; suffix spoof of GovCloud S3 host"
+    )
+    ts = "2026-11-06T00:36:19Z"
+    with pytest.raises(IolpFetchError):
+        _validate_redirect_url(
+            f"https://{host}/file.xlsx",
+            origin_url=LEASES_URL,
+            ts=ts,
+        )
+
+
+def test_h34_non_s3_govcloud_service_rejected():
+    """sqs.us-gov-west-1.amazonaws.com must be rejected — it is a GovCloud
+    SQS endpoint, not S3 storage."""
+    host = "sqs.us-gov-west-1.amazonaws.com"
+    assert not _is_permitted_iolp_host(host)
+    ts = "2026-11-06T00:36:19Z"
+    with pytest.raises(IolpFetchError):
+        _validate_redirect_url(
+            f"https://{host}/queue",
+            origin_url=LEASES_URL,
+            ts=ts,
+        )
+
+
+def test_h35_govcloud_redirect_full_pipeline_succeeds():
+    """End-to-end: a redirect chain inventory.data.gov → GovCloud S3 must
+    complete successfully, returning a valid record with correct provenance."""
+    import hashlib
+
+    leases_xlsx = _make_xlsx(LEASES_HEADERS, [_leases_row()])
+    expected_sha256 = hashlib.sha256(leases_xlsx).hexdigest()
+
+    gov_redirect = _mock_redirect(
+        "https://s3-us-gov-west-1.amazonaws.com/cg-ae4ac6ad/iolp-leases.xlsx"
+    )
+    gov_200 = _mock_ok(leases_xlsx)
+
+    responses = iter([gov_redirect, gov_200])
+
+    with patch("src.clients.iolp_client.requests.get",
+               side_effect=lambda *a, **kw: next(responses)):
+        result = get_property_details("CT3414", dataset="leases")
+
+    assert result["dataset"] == "leases", f"Expected leases, got: {result['dataset']!r}"
+    assert result["location_code"] == "CT3414"
+    assert result["source_sha256"] == expected_sha256
+    assert result["retrieved_at_utc"] is not None
+
+
+def test_h36_govcloud_redirect_not_requested_before_validation():
+    """The GovCloud redirect destination must be validated BEFORE any streaming
+    request is issued to it.  We verify this by checking that when an evil
+    host suffix mimics the GovCloud hostname, no second requests.get call
+    is made to the spoofed host."""
+    call_log: list[str] = []
+
+    def side_effect(url, **kw):
+        call_log.append(url)
+        # First call: return a redirect to an evil host that looks like GovCloud
+        if len(call_log) == 1:
+            return _mock_redirect("https://evil.s3-us-gov-west-1.amazonaws.com/evil.xlsx")
+        # Second call must never occur
+        raise AssertionError(f"Unexpected second request to {url!r}")
+
+    with patch("src.clients.iolp_client.requests.get", side_effect=side_effect):
+        result = get_property_details("CT3414", dataset="leases")
+
+    # Fetch failed due to disallowed host — only one request was made
+    assert len(call_log) == 1, f"Expected 1 request, got {len(call_log)}: {call_log}"
+    assert result["dataset"] == "unknown"
+    assert result["message"] is not None

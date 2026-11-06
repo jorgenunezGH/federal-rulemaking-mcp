@@ -1,0 +1,182 @@
+{
+  "gate": "B-snapshot",
+  "description": "Frozen-snapshot evaluation S1/S2/S3-real/S4/S5-real/S6/S7",
+  "snapshot_manifest": {
+    "leases_sha256": "8d74c51668024199b22f2c2f9c7bb2745b7ca2af11bc416f8b48fe271048ef5c",
+    "buildings_sha256": "fb43d36814f1889982f5176b81346b88b8b3f92a9dd396f1cee4c3b5cb117faa",
+    "integrity": "VERIFIED"
+  },
+  "pass_count": 7,
+  "fail_count": 0,
+  "scenarios": [
+    {
+      "id": "S1",
+      "category": "Lease record \u2014 explicit dataset pin",
+      "tool": "get_property_details",
+      "params": {
+        "location_code": "CT3414",
+        "dataset": "leases"
+      },
+      "pass": true,
+      "failures": [],
+      "notes": "CT3414 also in buildings; dataset=leases pins to leases record. GovCloud redirect exercised.",
+      "observed": {
+        "location_code": "CT3414",
+        "real_property_asset_name": "2 UNION PLAZA",
+        "street_address": "2 UNION PLZ",
+        "city": "NEW LONDON",
+        "state": "CT",
+        "zip_code": "06320-6309",
+        "lease_number": "LCT00005",
+        "lease_expiration_date": "7/26/2034",
+        "gsa_region": 1,
+        "dataset": "leases",
+        "source_file": "https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/13886719-6b8a-4596-8c82-5b32664005f7/download/2026-10-30-iolp-leases.xlsx",
+        "source_sha256": "8d74c51668024199b22f2c2f9c7bb2745b7ca2af11bc416f8b48fe271048ef5c",
+        "retrieved_at_utc": "2026-11-06T00:50:30Z",
+        "message": null
+      }
+    },
+    {
+      "id": "S2",
+      "category": "Buildings-only record",
+      "tool": "get_property_details",
+      "params": {
+        "location_code": "AK0001",
+        "dataset": "buildings"
+      },
+      "pass": true,
+      "failures": [],
+      "notes": "AK0001 absent from leases (1,667 buildings-only codes). GovCloud redirect exercised.",
+      "observed": {
+        "location_code": "AK0001",
+        "real_property_asset_name": "ANCHORAGE HISTORIC FEDERAL BUILDING",
+        "installation_name": "ANCHORAGE FEDERAL",
+        "street_address": "605 W 4TH AVE",
+        "city": "ANCHORAGE",
+        "state": "AK",
+        "zip_code": "99501-2248",
+        "owned_or_leased": "OWNED",
+        "building_status": "ACTIVE",
+        "construction_date": 1939,
+        "gsa_region": 10,
+        "building_rentable_sq_ft": 91737.92,
+        "dataset": "buildings",
+        "source_file": "https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/ad1a66f2-8019-43d9-b625-ea55e1f09677/download/2026-10-30-iolp-buildings.xlsx",
+        "source_sha256": "fb43d36814f1889982f5176b81346b88b8b3f92a9dd396f1cee4c3b5cb117faa",
+        "retrieved_at_utc": "2026-11-06T00:50:31Z",
+        "message": null
+      }
+    },
+    {
+      "id": "S3-real",
+      "category": "Cross-dataset ambiguity (GSA-snapshot)",
+      "tool": "get_property_details",
+      "params": {
+        "location_code": "CT3414"
+      },
+      "pass": true,
+      "failures": [],
+      "notes": "CT3414 in both datasets. source_file=null by design (cross-dataset gap, \u00a79.1). Disambiguation requires dataset= parameter.",
+      "observed": {
+        "dataset": "unknown",
+        "source_file": null,
+        "source_sha256": null,
+        "retrieved_at_utc": null,
+        "fetch_attempted_at": "2026-11-06T00:50:32Z",
+        "message": "Location Code 'CT3414' was found in both datasets (leases, buildings). Re-request with an explicit dataset= parameter to select the intended record."
+      }
+    },
+    {
+      "id": "S4",
+      "category": "Definite absence",
+      "tool": "get_property_details",
+      "params": {
+        "location_code": "ZZZZ-EVAL-ABSENT-9999"
+      },
+      "pass": true,
+      "failures": [],
+      "notes": "Code confirmed absent from both datasets via independent inspection. source_file=BUILDINGS_URL per iolp_client.py:924 (last retrieved source). NOTE: S4 exposes the known cross-dataset provenance limitation \u2014 source_sha256 = buildings hash even though leases was also searched.",
+      "observed": {
+        "dataset": "unknown",
+        "source_file": "https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/ad1a66f2-8019-43d9-b625-ea55e1f09677/download/2026-10-30-iolp-buildings.xlsx",
+        "source_sha256": "fb43d36814f1889982f5176b81346b88b8b3f92a9dd396f1cee4c3b5cb117faa",
+        "retrieved_at_utc": null,
+        "fetch_attempted_at": "2026-11-06T00:50:34Z",
+        "message": "No IOLP property found with Location Code 'ZZZZ-EVAL-ABSENT-9999' in the leases and buildings dataset(s)."
+      }
+    },
+    {
+      "id": "S5-real",
+      "category": "Intra-dataset ambiguity (GSA-snapshot, CT3360)",
+      "tool": "get_property_details",
+      "params": {
+        "location_code": "CT3360",
+        "dataset": "leases"
+      },
+      "pass": true,
+      "failures": [],
+      "notes": "CT3360 has 3 lease rows: LCT00250, LCT00349, LCT04792 (independent inspection).",
+      "observed": {
+        "dataset": "unknown",
+        "source_file": "https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/13886719-6b8a-4596-8c82-5b32664005f7/download/2026-10-30-iolp-leases.xlsx",
+        "source_sha256": "8d74c51668024199b22f2c2f9c7bb2745b7ca2af11bc416f8b48fe271048ef5c",
+        "retrieved_at_utc": null,
+        "fetch_attempted_at": "2026-11-06T00:50:36Z",
+        "message": "Location Code 'CT3360' matched 3 rows in the leases dataset. Lease numbers found: LCT00250, LCT00349, LCT04792. Supply a lease_number to identify the specific record needed."
+      }
+    },
+    {
+      "id": "S6",
+      "category": "Search \u2014 state filter",
+      "tool": "search_federal_properties",
+      "params": {
+        "q": "OFFICE",
+        "state": "CA",
+        "dataset": "leases"
+      },
+      "pass": true,
+      "failures": [],
+      "notes": "Expected 17 CA OFFICE leases (independent inspection). All results CA: True.",
+      "observed": {
+        "total_found": 17,
+        "returned": 10,
+        "sources_attempted": [
+          "https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/13886719-6b8a-4596-8c82-5b32664005f7/download/2026-10-30-iolp-leases.xlsx"
+        ],
+        "sources_retrieved": [
+          "https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/13886719-6b8a-4596-8c82-5b32664005f7/download/2026-10-30-iolp-leases.xlsx"
+        ],
+        "retrieved_at_utc": "2026-11-06T00:50:37Z",
+        "truncated": false,
+        "message": null
+      }
+    },
+    {
+      "id": "S7",
+      "category": "Search \u2014 city filter",
+      "tool": "search_federal_properties",
+      "params": {
+        "q": "BUILDING",
+        "city": "WASHINGTON",
+        "dataset": "buildings"
+      },
+      "pass": true,
+      "failures": [],
+      "notes": "Corrected: 37 total (35 via Real Property Asset Name + 2 via Installation Name: RONALD REAGAN BUILDING COMPLEX). All results WASHINGTON: True.",
+      "observed": {
+        "total_found": 37,
+        "returned": 10,
+        "sources_attempted": [
+          "https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/ad1a66f2-8019-43d9-b625-ea55e1f09677/download/2026-10-30-iolp-buildings.xlsx"
+        ],
+        "sources_retrieved": [
+          "https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/ad1a66f2-8019-43d9-b625-ea55e1f09677/download/2026-10-30-iolp-buildings.xlsx"
+        ],
+        "retrieved_at_utc": "2026-11-06T00:50:39Z",
+        "truncated": false,
+        "message": null
+      }
+    }
+  ]
+}

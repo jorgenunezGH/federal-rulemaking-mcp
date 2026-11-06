@@ -1,0 +1,64 @@
+retrieved_at_utc:
+  leases:    2026-11-06T00:36:19Z
+  buildings: 2026-11-06T00:37:10Z
+
+source_url:
+  leases:    https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/13886719-6b8a-4596-8c82-5b32664005f7/download/2026-10-30-iolp-leases.xlsx
+  buildings: https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/ad1a66f2-8019-43d9-b625-ea55e1f09677/download/2026-10-30-iolp-buildings.xlsx
+
+final_redirect_host: s3-us-gov-west-1.amazonaws.com
+final_redirect_path_prefix: /cg-ae4ac6ad-c789-4bb7-b830-7f1ebeebfd41/datagov/inventory-next/resources/
+note: Signed URL query parameters (X-Amz-*) were present in the transient HTTP redirect
+      response but are NOT recorded here — they are short-lived pre-signed tokens and
+      provide no long-term integrity value.  The SHA-256 hashes above are the integrity
+      anchors for these files.
+
+redirect_host_allowlist_status: RESOLVED — s3-us-gov-west-1.amazonaws.com added as
+  exact permitted host in src/clients/iolp_client.py _is_permitted_iolp_host().
+  Committed in this evaluation checkpoint.
+
+byte_count:
+  leases:     899388
+  buildings:  879026
+
+sha256:
+  leases:    8d74c51668024199b22f2c2f9c7bb2745b7ca2af11bc416f8b48fe271048ef5c
+  buildings: fb43d36814f1889982f5176b81346b88b8b3f92a9dd396f1cee4c3b5cb117faa
+
+xlsx_validity:
+  leases:    valid ZIP, 7 entries — passes _validate_zip checks
+  buildings: valid ZIP, 7 entries — passes _validate_zip checks
+
+workbook_schema:
+  leases:
+    columns: Location Code, Real Property Asset Name, Installation Name,
+             Federal Leased Code, GSA Region, Street Address, City, State,
+             Zip Code, Latitude, Longitude, Building Rentable Square Feet,
+             Available Square Feet, Congressional District,
+             Congressional District Representative, Lease Number,
+             Lease Effective Date, Lease Expiration Date, Real Property Asset type
+    data_rows: 7078
+    distinct_location_codes: 6079
+    unique_codes (count=1): 5408
+    multi_lease_codes (count>1): 671
+    required_cols_present: YES (Location Code, Real Property Asset Name,
+                                Street Address, City, State, Zip Code)
+  buildings:
+    columns: Location Code, Real Property Asset Name, Installation Name,
+             Owned or Leased, GSA Region, Street Address, City, State,
+             Zip Code, Latitude, Longitude, Building Rentable Square Feet,
+             Available Square Feet, Construction Date, Congressional District,
+             Congressional District Representative Name, Building Status,
+             Real Property Asset Type
+    data_rows: 7746
+    distinct_location_codes: 7746 (all unique)
+    required_cols_present: YES (Location Code, Real Property Asset Name,
+                                Street Address, City, State, Zip Code)
+
+cross_dataset_overlap:
+  codes_in_both_datasets:    6079
+  leases_only_codes:         0
+  buildings_only_codes:      1667
+  note: ALL leases location codes also appear in buildings. There are no
+        leases-only codes in this snapshot. S1 must use dataset="leases"
+        on a code present in both datasets.

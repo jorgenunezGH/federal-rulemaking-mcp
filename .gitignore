@@ -37,3 +37,6 @@ evaluations/venv_packages.txt
 
 # Bob session artifacts — runtime workspace; contents not guaranteed safe for VCS
 .bob/
+
+# IOLP evaluation snapshots — large binary workbooks; excluded from VCS
+evaluations/iolp/snapshots/

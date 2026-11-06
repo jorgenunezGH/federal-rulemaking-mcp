@@ -1,0 +1,84 @@
+{
+  "gate": "B",
+  "description": "Synthetic evaluation S3/S5/S8/S9",
+  "all_pass": true,
+  "scenarios": [
+    {
+      "id": "S3",
+      "category": "Cross-dataset ambiguity (synthetic)",
+      "tool": "get_property_details",
+      "params": {
+        "location_code": "EVAL-XDATASET-01"
+      },
+      "pass": true,
+      "failures": [],
+      "notes": "source_file/source_sha256 intentionally null per design (iolp_client.py:896-905)",
+      "observed_keys": {
+        "dataset": "unknown",
+        "source_file": null,
+        "source_sha256": null,
+        "retrieved_at_utc": null,
+        "fetch_attempted_at": "2026-11-06T00:29:53Z",
+        "message": "Location Code 'EVAL-XDATASET-01' was found in both datasets (leases, buildings). Re-request with an explicit dataset= parameter to select the intended record."
+      }
+    },
+    {
+      "id": "S5",
+      "category": "Intra-dataset ambiguity (synthetic)",
+      "tool": "get_property_details",
+      "params": {
+        "location_code": "EVAL-MULTI-LEASE-01",
+        "dataset": "leases"
+      },
+      "pass": true,
+      "failures": [],
+      "notes": "fixture SHA-256: ccea2bc64ced07cd\u2026",
+      "observed_keys": {
+        "dataset": "unknown",
+        "source_file": "https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/13886719-6b8a-4596-8c82-5b32664005f7/download/2026-10-30-iolp-leases.xlsx",
+        "source_sha256": "ccea2bc64ced07cd1a268cf2edd20215037733ff16dedfecc811fa1e7ebdd2f5",
+        "retrieved_at_utc": null,
+        "fetch_attempted_at": "2026-11-06T00:29:53Z",
+        "message": "Location Code 'EVAL-MULTI-LEASE-01' matched 2 rows in the leases dataset. Lease numbers found: EVAL-LN-001, EVAL-LN-002. Supply a lease_number to identify the specific record needed."
+      }
+    },
+    {
+      "id": "S8",
+      "category": "Truncated scan disclosure (synthetic)",
+      "tool": "search_federal_properties",
+      "params": {
+        "q": "TRUNCTEST",
+        "dataset": "leases"
+      },
+      "pass": true,
+      "failures": [],
+      "notes": "fixture has 50001 data rows; cap is 50000",
+      "observed_keys": {
+        "truncated": true,
+        "row_limit": 50000,
+        "records_scanned": 50000,
+        "sources_retrieved": [
+          "https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/13886719-6b8a-4596-8c82-5b32664005f7/download/2026-10-30-iolp-leases.xlsx"
+        ],
+        "retrieved_at_utc": "2026-11-06T00:30:04Z",
+        "message": "Partial results: the processing limit was reached (50,000 of up to 50,000 rows per dataset scanned). Counts and rankings describe only the records scanned."
+      }
+    },
+    {
+      "id": "S9",
+      "category": "Buildings-only filter passthrough (synthetic)",
+      "tool": "search_federal_properties",
+      "params": {
+        "q": "FEDERAL",
+        "building_status": "ACTIVE",
+        "dataset": "(omitted = both)"
+      },
+      "pass": true,
+      "failures": [],
+      "notes": "Leases row passes through unconditionally (iolp_client.py:715-719). DOCUMENTED PASSTHROUGH behavior, not correct filter enforcement. INACTIVE buildings row correctly excluded. PLAN FIX: dataset='both' invalid; omit dataset= to search both datasets.",
+      "observed_keys": {
+        "total_found": 1
+      }
+    }
+  ]
+}
